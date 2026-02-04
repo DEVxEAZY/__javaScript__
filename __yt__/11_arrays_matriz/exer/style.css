@@ -1,5 +1,5 @@
 body {
-    font-family: 'Consolas', monospace;
+    font-family: Consolas, monospace;
 }
 
 #mapa-assentos {
@@ -7,4 +7,4 @@ body {
     grid-template-columns: repeat(5, 50px);
     gap: 10px;
     justify-content: center;
-    }
+}
