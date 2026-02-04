@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        body {
+            font-size: 14px;
+        }
+        ul {
+            font-size: 12px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+
+    <h1>Eventos JavaScript mais comuns</h1>
+    <ul>
+        <li><strong>onclick</strong>: Acionado quando o usuário clica em um elemento.</li>
+        <li><strong>onmouseenter</strong>: Acionado quando o ponteiro do mouse entra na área de um elemento.</li>
+        <li><strong>onmouseleave</strong>: Acionado quando o ponteiro do mouse sai da área de um elemento.</li>
+        <li><strong>onchange</strong>: Acionado quando o valor de um elemento (como input ou select) é alterado.</li>
+        <li><strong>onfocus</strong>: Acionado quando um elemento recebe o foco (ex: clicar dentro de um input).</li>
+        <li><strong>onblur</strong>: Acionado quando um elemento perde o foco.</li>
+        <li><strong>onkeydown</strong>: Acionado quando uma tecla é pressionada.</li>
+        <li><strong>onkeyup</strong>: Acionado quando uma tecla é solta.</li>
+        <li><strong>onload</strong>: Acionado quando a página ou um recurso termina de carregar completamente.</li>
+        <li><strong>onsubmit</strong>: Acionado no momento em que um formulário é enviado.</li>
+    </ul>
+
+    <button onclick="EventoClick()">Clica aqui</button> 
+
+    <select onchange="EventoChange()">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>    
+    </select>
+
+    <script src="script.js"></script>
+
+</body>
+</html>

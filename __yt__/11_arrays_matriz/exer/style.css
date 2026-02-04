@@ -1,0 +1,6 @@
+#mapa-assentos {
+    display: flex;
+    grid-template-columns: repeat(5, 50px);
+    gap: 10px;
+    justify-content: center;
+    }

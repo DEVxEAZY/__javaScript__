@@ -1,0 +1,17 @@
+.container {
+    align-items: center;
+    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(10, 30px);
+    grid-template-rows: repeat(10, 30px);
+    gap: 0px;
+  }
+  .box {
+    width: 30px;
+    height: 30px;
+    border: 1px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
