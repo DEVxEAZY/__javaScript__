@@ -1,5 +1,5 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Consolas', monospace;
     background-color: #f4f4f9;
     color: #333;
     padding: 20px;
@@ -31,5 +31,5 @@ code {
     background: #eee;
     padding: 2px 5px;
     border-radius: 4px;
-    font-family: monospace;
+    font-family: 'Consolas', monospace;
 }
