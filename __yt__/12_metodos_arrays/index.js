@@ -1,30 +1,42 @@
-const lista1 = ["banana", "maçã", "uva", "laranja"];
-const lista2 = ["carro","moto","bicicleta","patinete"];
+// Listas iniciais
+const frutas = ["banana", "maçã", "uva", "laranja"];
+const veiculos = ["carro", "moto", "bicicleta", "patinete"];
 
+// 1. Join -> Insere um separador entre os elementos e retorna uma string
+const frutasJoin = frutas.join(' - ');
+document.getElementById('container_join').innerHTML = `<code>frutas.join(' - ')</code>: ${frutasJoin}`;
 
+// 2. Concat -> Une dois ou mais arrays
+const tudoJunto = frutas.concat(veiculos);
+document.getElementById('container_concat').innerHTML = `<code>frutas.concat(veiculos)</code>: ${tudoJunto}`;
 
-//document.getElementById('container_id').innerHTML = lista1_join + '<br>' + lista2_join;
+// 3. Slice -> Retorna uma cópia de parte do array (não altera o original)
+const algumasFrutas = frutas.slice(1, 3); // Pega do índice 1 até o 2 (3 não incluso)
+document.getElementById('container_slice').innerHTML = `<code>frutas.slice(1, 3)</code>: ${algumasFrutas} (Original: ${frutas})`;
 
-// metodo pop -> remove o último elemento do array
-const lista1_pop = lista1.pop();
-const lista2_pop = lista2.pop();
+// 4. Sort & Reverse -> Ordenação
+const numeros = [5, 2, 10, 43, 50, 1, 20];
+const numerosOrdenados = [...numeros].sort((a, b) => a - b); // Cópia ordenada (numérico)
+const frutasReversas = [...frutas].reverse(); // Cópia em ordem reversa
 
-//document.getElementById('container_id').innerHTML = lista1_pop + '<br>' + lista2_pop;
+document.getElementById('container_sort').innerHTML = `
+    Original: ${numeros}<br>
+    Ordenado (numérico): ${numerosOrdenados}<br>
+    Frutas Reversas: ${frutasReversas}
+`;
 
-// metodo push -> adiciona um elemento ao final do array
-const lista1_push = lista1.push('abacaxi');
-const lista2_push = lista2.push('trator');
+// 5. Push & Pop -> Adiciona/Remove no final (Altera o original)
+const listaPushPop = ["Item A", "Item B"];
+listaPushPop.push("Item C"); // Adiciona no fim
+const removido = listaPushPop.pop(); // Remove o último ("Item C")
+document.getElementById('container_push_pop').innerHTML = `
+    Estado final: ${listaPushPop}<br>
+    Elemento removido com pop(): ${removido}
+`;
 
-
-const lista_splice = lista1.splice(0, 2,'banana nova','maça nova');
-
-// metodo join -> insere um separador entre os elementos do array
-const lista1_join = lista1.join(' || ');
-const lista2_join = lista2.join(' || ');
-
-
-document.getElementById('container_id').innerHTML = lista1_join + '<br>' + '<br>' + lista2_join + '<br>' + '<br>' + '<br>' + '<br>';
-
-const lista_concat = lista1.concat(lista2);
-document.getElementById('container_concat').innerHTML = lista_concat;
-//document.getElementById('container_id').innerHTML = lista1_push + '<br>' + lista2_push;
+// 6. Splice -> Adiciona/Remove em qualquer posição (Altera o original)
+const cores = ["azul", "verde", "vermelho"];
+cores.splice(1, 1, "amarelo", "roxo"); // No índice 1, remove 1 e adiciona "amarelo" e "roxo"
+document.getElementById('container_splice').innerHTML = `
+    <code>cores.splice(1, 1, "amarelo", "roxo")</code>: ${cores}
+`;
