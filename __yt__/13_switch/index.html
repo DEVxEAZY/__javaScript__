@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estudo de Switch Case</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header style="text-align: center;">
+        <h2>Switch Case em JavaScript</h2>
+        <p>Explorando os dois tipos de construção</p>
+    </header>
+
+    <main class="container-main">
+        
+        <!-- EXEMPLO 1: SWITCH NORMAL -->
+        <section class="example-section">
+            <h3>1. Switch Normal (case 0... case 1)</h3>
+            <p>Digite um número de 0 a 6 para ver o dia da semana:</p>
+            <div class="input-group">
+                <input type="number" id="input-dia" placeholder="Ex: 1" min="0" max="6">
+                <button onclick="verificarDia()">Verificar Dia</button>
+            </div>
+            <p id="resultado-dia" class="result-text"></p>
+        </section>
+
+        <hr>
+
+        <!-- EXEMPLO 2: SWITCH TRUE -->
+        <section class="example-section">
+            <h3>2. Switch Lógico (switch true)</h3>
+            <p>Digite sua idade para ver sua faixa etária:</p>
+            <div class="input-group">
+                <input type="number" id="input-idade" placeholder="Ex: 25">
+                <button onclick="verificarFaixaEtaria()">Verificar Idade</button>
+            </div>
+            <p id="resultado-idade" class="result-text"></p>
+        </section>
+
+        <hr>
+
+        <!-- EXEMPLO ORIGINAL: CORES -->
+        <section class="example-section">
+            <h3>3. Switch com Agrupamento (Cores)</h3>
+            <div class="input-group">
+                <input type="text" id="cor" placeholder="Digite uma cor em inglês">
+                <button onclick="verificarCorInput()">Mudar Cor</button>
+            </div>
+            
+            <div class="color-list" id="color-list">
+                <ul>
+                    <li><button onclick="verificarCorList('red')" class="list-button red">red</button></li>
+                    <li><button onclick="verificarCorList('blue')" class="list-button blue">blue</button></li>
+                    <li><button onclick="verificarCorList('green')" class="list-button green">green</button></li>
+                    <li><button onclick="verificarCorList('yellow')" class="list-button yellow">yellow</button></li>
+                    <li><button onclick="verificarCorList('orange')" class="list-button orange">orange</button></li>
+                    <li><button onclick="verificarCorList('black')" class="list-button black">black</button></li>
+                </ul>       
+            </div>
+            
+            <div style="display: flex; justify-content: center; align-items: center; margin-top: 20px;">
+                <div class="container-result-class" id="container-result-id">Resultado da Cor</div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="index.js"></script>
+</body>
+</html>
