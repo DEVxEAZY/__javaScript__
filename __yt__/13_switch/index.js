@@ -84,6 +84,7 @@ function mudarCor(cor) {
     // Resetando a cor do texto para preto por padrão
     container.style.color = "black";
 
+
     switch (corNormalizada) {
         case 'red':
         case 'blue':
@@ -92,14 +93,12 @@ function mudarCor(cor) {
         case 'orange':
             container.style.backgroundColor = corNormalizada;
             container.innerHTML = `Cor: ${corNormalizada}`;
-            break;
-        
+            break; 
         case 'black':
             container.style.backgroundColor = corNormalizada;
             container.innerHTML = `Cor: ${corNormalizada}`;
             container.style.color = "white"; // Muda a cor do texto para branco no fundo preto
             break;
-
         default:
             container.style.backgroundColor = '#f0f0f0';
             container.innerHTML = "invalid color";
@@ -113,5 +112,33 @@ function verificarCorInput() {
 }
 
 function verificarCorList(cor) {
-    mudarCor(cor);
+    mudarCor(cor); // Chama a função mudarCor passando a cor como argumento
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
