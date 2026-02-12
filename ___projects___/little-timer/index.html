@@ -30,6 +30,8 @@
             
         }
         #timer-display {
+            display: flex;
+            flex-direction: column;
             margin-top: 5px;
             width: 100%;
             height: 100px;
@@ -39,6 +41,10 @@
             align-items: center;
             justify-content: center;
             color: #000000;
+        }
+        #status-timer {
+            margin-top: 10px;
+            font-size: 15px;   
         }
         .timer-button {
             padding: 10px;
@@ -59,11 +65,15 @@
        <section id="timer-container">
             <h3>Timer 10s</h3>
             <div id="timer-buttons">
-                <button class="timer-button" id="start-timer" onclick="startTimer(10)">Start Timer</button>
+                <button class="timer-button" id="start-timer" onclick="startButton()">Start Timer</button>
                 <button class="timer-button" id="stop-timer">Stop Timer</button>
             </div>
         </div>
-        <div id="timer-display">00:00:00</div>
+        <div id="timer-display">
+            <div id="time">00:00:00</div>
+            <div id="status-timer">parado</div>
+        </div>
+        </div>
         </section>
     </main>
     <script src="index.js"></script>
