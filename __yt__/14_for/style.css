@@ -1,0 +1,41 @@
+body {
+    background-color: #000;
+    color: #fff;
+    font-family: 'Consolas', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+.container {
+    max-width: 600px;
+    padding: 20px;
+    border: 1px solid #fff;
+}
+
+h1 {
+    border-bottom: 1px solid #fff;
+    padding-bottom: 10px;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    margin-bottom: 5px;
+}
+
+hr {
+    border: 0;
+    border-top: 1px dashed #fff;
+    margin: 20px 0;
+}
+
+#output {
+    font-size: 0.9em;
+    color: #ccc;
+}

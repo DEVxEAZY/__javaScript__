@@ -1,35 +1,23 @@
+// Exemplo de Loop For em JavaScript
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-  
+// 1. Loop simples para contar de 1 a 5
+const lista = document.getElementById('resultado-lista');
 
-//const displayTime = document.getElementById('timer-display');
+console.log("Iniciando contagem...");
 
-const hour = 0 
-const minute = 0
-const second = 0
+for (let i = 1; i <= 5; i++) {
+    const item = document.createElement('li');
+    item.textContent = `Número: ${i}`;
+    lista.appendChild(item);
+    console.log(`Contagem: ${i}`);
+}
 
-const textDisplayTimer = `${hour}:${minute}:${second}`
+// 2. Iterando sobre um array
+const frutas = ['Maçã', 'Banana', 'Laranja', 'Morango'];
+const outputDiv = document.getElementById('output');
 
-// timer 10 s 
+outputDiv.innerHTML += '<p><strong>Iterando sobre um array de frutas:</strong></p>';
 
-function startTimer(segundos) {
-    
-    const segundos_timer = 1000 * segundos;
-
-    const counting = async () => {
-        for(let i = 0; i < 10; i++){
-            
-            let second = i
-            await sleep(segundos_timer)
-            //displayTime.innerHTML = `${second}`         
-            console.log(second)
-        }
-    }
-    return counting
-
-};
-
-
-startTimer(10);
+for (let j = 0; j < frutas.length; j++) {
+    outputDiv.innerHTML += `Fruta ${j + 1}: ${frutas[j]}<br>`;
+}
