@@ -1,13 +1,86 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>JS Class: Car Example</title>
+    <style>
+        :root {
+            --bg-color: #000;
+            --text-color: #fff;
+            --accent-color: #333;
+            --border-color: #444;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Consolas', 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        #output {
+            background-color: var(--accent-color);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            border-left: 2px solid #555;
+            padding-left: 10px;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 15px 0;
+        }
+
+        footer {
+            margin-top: auto;
+            font-size: 0.7rem;
+            color: #666;
+            text-align: center;
+            padding-top: 40px;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <h1>Car Class Simulation</h1>
+        <div id="output"></div>
+    </div>
 
-
+    <footer>
+        &gt; JS_STUDY / CLASSES / CAR_SYSTEM
+    </footer>
 
     <script src="index.js"></script>
 </body>

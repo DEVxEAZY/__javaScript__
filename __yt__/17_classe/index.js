@@ -1,3 +1,7 @@
+/**
+ * @class Car
+ * Representação minimalista de um sistema de veículos
+ */
 class Car {
     constructor(marca, modelo, ano) {
         this.marca = marca;
@@ -7,52 +11,75 @@ class Car {
     }
 
     buzina(info_add = "") {
-        return `A buzina do ${this.marca} ${this.modelo} está ligada! ${info_add}`;
+        return `[ALERT] A buzina do ${this.marca.toUpperCase()} ${this.modelo.toUpperCase()} está ligada! ${info_add}`;
     }
 
     ligar() {
         if (this.ligado) {
-            return `O ${this.modelo} já está ligado.`;
+            return `[STATE] O ${this.modelo} já se encontra LIGADO.`;
         }
         this.ligado = true;
-        return `O ${this.modelo} foi ligado agora!`;
+        return `[ACTION] Ignigção: O ${this.modelo} foi LIGADO com sucesso.`;
     }
 
     desligar() {
         if (!this.ligado) {
-            return `O ${this.modelo} já está desligado.`;
+            return `[STATE] O ${this.modelo} já se encontra DESLIGADO.`;
         }
         this.ligado = false;
-        return `O ${this.modelo} foi desligado.`;
+        return `[ACTION] O ${this.modelo} foi DESLIGADO.`;
     }
 
     getDados() {
-        return `Carro: ${this.marca} ${this.modelo} (${this.ano}) - Status: ${this.ligado ? "Ligado" : "Desligado"}`;
+        return `[DATA] Marca: ${this.marca} | Modelo: ${this.modelo} | Ano: ${this.ano} | Status: ${this.ligado ? "LIGADO" : "DESLIGADO"}`;
     }
 
-    // Exemplo de um método que altera um valor
     atualizarAno(novoAno) {
-        if (novoAno > 1900 && novoAno <= new Date().getFullYear() + 1) {
+        const anoAtual = new Date().getFullYear();
+        if (novoAno > 1900 && novoAno <= anoAtual + 1) {
             this.ano = novoAno;
-            return `Ano atualizado para ${this.ano}.`;
+            return `[UPDATE] Registro atualizado: Novo ano definido para ${this.ano}.`;
         }
-        return "Ano inválido!";
+        return "[ERROR] Falha na atualização: Ano informado é inválido.";
     }
 }
 
-// Criando instâncias (objetos) da classe Car
-const uno = new Car("Fiat", "Uno de escada", 2004);
+// Inicialização de Instâncias
+const uno = new Car("Fiat", "Uno", 2004);
 const ferrari = new Car("Ferrari", "F8 Tributo", 2023);
 
-// Usando os métodos
-console.log(uno.getDados());
-console.log(uno.ligar());
-console.log(uno.buzina("Sai da frente!"));
-console.log(uno.getDados());
+/**
+ * Função para renderização minimalista no DOM
+ */
+function logToPage(message) {
+    console.log(message);
+    const output = document.getElementById('output');
+    
+    if (output) {
+        if (message === "DIVIDER") {
+            const div = document.createElement('div');
+            div.className = 'divider';
+            output.appendChild(div);
+            return;
+        }
 
-console.log("--------------------");
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.textContent = `> ${message}`;
+        output.appendChild(entry);
+    }
+}
 
-console.log(ferrari.getDados());
-console.log(ferrari.buzina());
-console.log(ferrari.atualizarAno(2024));
-console.log(ferrari.getDados());
+// Execução da Simulação
+logToPage(uno.getDados());
+logToPage(uno.ligar());
+logToPage(uno.buzina("Remova a escada do teto!"));
+logToPage(uno.getDados());
+
+logToPage("DIVIDER");
+
+logToPage(ferrari.getDados());
+logToPage(ferrari.buzina());
+logToPage(ferrari.atualizarAno(2025));
+logToPage(ferrari.getDados());
+logToPage(ferrari.desligar());
