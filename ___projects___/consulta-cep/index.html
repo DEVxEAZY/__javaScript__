@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="consulta">
+        <h1>CONSULTA DE CEP</h1>
+
+        <input type="text" id="cep-input" placeholder="insira o CEP">
+        <button id="consultar-cep" onclick="getCep()">consultar</button>
+        <span id="status_consulta"></span>
+    </div>
+    <div id="display-resultado">
+        <p><strong>CEP:</strong> <span id="res-cep" class="typewriter"></span></p>
+        <p><strong>Logradouro:</strong> <span id="res-logradouro" class="typewriter"></span></p>
+        <p><strong>Complemento:</strong> <span id="res-complemento" class="typewriter"></span></p>
+        <p><strong>Unidade:</strong> <span id="res-unidade" class="typewriter"></span></p>
+        <p><strong>Bairro:</strong> <span id="res-bairro" class="typewriter"></span></p>
+        <p><strong>Localidade:</strong> <span id="res-localidade" class="typewriter"></span></p>
+        <p><strong>UF:</strong> <span id="res-uf" class="typewriter"></span></p>
+        <p><strong>Estado:</strong> <span id="res-estado" class="typewriter"></span></p>
+        <p><strong>Região:</strong> <span id="res-regiao" class="typewriter"></span></p>
+        <p><strong>IBGE:</strong> <span id="res-ibge" class="typewriter"></span></p>
+        <p><strong>GIA:</strong> <span id="res-gia" class="typewriter"></span></p>
+        <p><strong>DDD:</strong> <span id="res-ddd" class="typewriter"></span></p>
+        <p><strong>SIAFI:</strong> <span id="res-siafi" class="typewriter"></span></p>
+    </div>
+    <script src="index.js"></script>
+</body>
+</html>

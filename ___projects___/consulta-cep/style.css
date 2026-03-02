@@ -1,0 +1,87 @@
+body{
+    background-color: black;
+    font-family: consolas;
+    color: white
+}
+
+#consulta {
+    width: 350px;
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    justify-content: left;
+    align-items: left;
+
+}
+
+input, #consultar-cep {
+    width: 100%;
+    background: transparent;
+    border: white solid 1px;
+    outline: none;
+    color: white;
+    padding: 10px;
+    transition: background 0.3s ease;
+    box-sizing: border-box; /* Garante que o padding não quebre a largura */
+}
+
+/* Mantém o estilo quando o navegador tenta preencher automaticamente (autofill) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus {
+    -webkit-text-fill-color: white;
+    -webkit-box-shadow: 0 0 0px 1000px black inset;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Mantém o estilo ao clicar/focar no input */
+input:focus {
+    background: transparent;
+    border: white solid 1px;
+}
+
+#consultar-cep {
+    margin-top: 10px;
+    width: 243px;
+    cursor: pointer;
+}
+
+#consultar-cep:hover {
+    background: rgb(52, 52, 52);
+}
+
+#status_consulta {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #00ff00;
+    min-height: 1.2em;
+}
+
+.loading::after {
+    content: '...';
+    display: inline-block;
+    animation: dots 1.5s steps(4, end) infinite;
+    width: 0;
+    overflow: hidden;
+    vertical-align: bottom;
+}
+
+@keyframes dots {
+    to { width: 1.25em; }
+}
+
+#display-resultado {
+    margin-top: 20px;
+    border-top: 1px solid #333;
+    padding-top: 10px;
+}
+
+#display-resultado p {
+    margin: 5px 0;
+    opacity: 0.8;
+}
+
+.typewriter {
+    color: #00ff00;
+}
+
