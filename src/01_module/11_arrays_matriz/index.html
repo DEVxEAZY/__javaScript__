@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrays e Matrizes em JS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #1a73e8;
+            border-bottom: 2px solid #e8f0fe;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #fafafa;
+            border-radius: 8px;
+            border-left: 5px solid #1a73e8;
+        }
+        code {
+            background-color: #202124;
+            color: #ffab40;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+        }
+        .output-box {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-family: 'Consolas', monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .grid-preview {
+            display: inline-block;
+            margin-top: 10px;
+            border-collapse: collapse;
+        }
+        .grid-preview td {
+            border: 1px solid #ddd;
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            background: white;
+            color: #333;
+        }
+        .highlight { color: #81c995; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Guia de Arrays e Matrizes</h1>
+        <p>Explore os conceitos fundamentais e avançados de manipulação de dados em JavaScript.</p>
+
+        <!-- Seção de Arrays -->
+        <div class="section">
+            <h2>1. Arrays (Unidimensionais)</h2>
+            <p>Um array é uma lista ordenada de valores. Usamos métodos como <code>push</code>, <code>map</code> e <code>filter</code> para manipulá-los.</p>
+            <div id="array-output" class="output-box">Carregando exemplos de arrays...</div>
+        </div>
+
+        <!-- Seção de Matrizes -->
+        <div class="section">
+            <h2>2. Matrizes (Multidimensionais)</h2>
+            <p>Uma matriz é essencialmente um "array de arrays", criando uma estrutura de linhas e colunas (grade).</p>
+            <div id="matrix-output" class="output-box">Carregando exemplos de matrizes...</div>
+            
+            <h3>Visualização de Matriz (3x3)</h3>
+            <table id="matrix-grid" class="grid-preview"></table>
+        </div>
+
+        <p><em>* Confira também o console do desenvolvedor (F12) para detalhes técnicos.</em></p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

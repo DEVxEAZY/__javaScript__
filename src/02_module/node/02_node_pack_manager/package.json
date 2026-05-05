@@ -1,0 +1,29 @@
+{
+  "name": "estudo-npm",
+  "version": "1.0.0",
+  "description": "Exemplo de package.json para estudo do NPM",
+  "main": "01_npm_basics.js",
+  "type": "commonjs",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node 01_npm_basics.js",
+    "demo": "node 01_npm_basics.js",
+    "semver": "node 02_semver.js",
+    "hello": "echo Olá, NPM!",
+    "info": "npm list --depth=0"
+  },
+  "keywords": [
+    "estudo",
+    "npm",
+    "node"
+  ],
+  "author": "DEVxEAZY",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {}
+}

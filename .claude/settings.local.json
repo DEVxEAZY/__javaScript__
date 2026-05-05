@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node 01_import.js)",
+      "Bash(node 01_npm_basics.js)",
+      "Bash(node 02_semver.js)",
+      "Bash(node 01_listing_files.js)"
+    ]
+  }
+}

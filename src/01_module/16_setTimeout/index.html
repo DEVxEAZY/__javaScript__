@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Timers - Minimalist</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            display: flex;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Consolas', monospace;
+            min-height: 100vh;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            width: 240px;
+            border: 1px solid #333;
+            padding: 20px;
+        }
+
+        h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .section-label {
+            font-size: 0.7rem;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .grid-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            width: 100%;
+        }
+
+        button {
+            border: 1px solid #fff;
+            background-color: transparent;
+            color: #fff;
+            height: 30px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #fff;
+            color: #000;
+        }
+
+        input {
+            height: 30px;
+            border: 1px solid #333;
+            background-color: transparent;
+            color: #fff;
+            padding: 0 8px;
+            font-family: inherit;
+            font-size: 0.8rem;
+            width: 100%;
+            outline: none;
+        }
+        input:focus { border-color: #fff; }
+
+        .btn-full {
+            grid-column: span 2;
+            margin-top: 5px;
+            border-color: #333;
+            color: #666;
+        }
+        .btn-full:hover {
+            border-color: #fff;
+            color: #000;
+        }
+
+        .display-area {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #show-counter {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        #status-message {
+            font-size: 0.7rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #333;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <main class="main-container">
+        <h3>Timer JS</h3>
+
+        <div class="display-area">
+            <div id="show-counter">0</div>
+            <div id="status-message">IDLE</div>
+        </div>
+
+        <div class="control-group">
+            <p class="section-label">Interval</p>
+            <div class="grid-row">
+                <button onclick="startInterval()">Start</button>
+                <button onclick="stopInterval()">Stop</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <p class="section-label">Timeout</p>
+            <div class="grid-row">
+                <input type="number" placeholder="SEC" id="input-timer">
+                <button onclick="startTimeout()">Set</button>
+                <button class="btn-full" onclick="clearMyTimeout()">Cancel</button>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="index.js"></script>
+</body>
+</html>
