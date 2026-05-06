@@ -1,0 +1,12 @@
+{
+  "name": "02_req_params_query_body",
+  "version": "1.0.0",
+  "description": "Aula 132 - req.params, req.query e req.body no Express.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

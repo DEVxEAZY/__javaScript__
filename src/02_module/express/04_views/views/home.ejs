@@ -1,0 +1,25 @@
+<%#
+    home.ejs
+
+    Sintaxe rapida:
+      <%= var %>     → escreve var (escapando HTML)
+      <%- include %> → escreve sem escapar (pra colar HTML do partial)
+      <% codigo %>   → so executa JS, sem imprimir nada
+      <%# coment %>  → comentario, nao vai pro HTML final
+-%>
+<%- include('partials/header') %>
+
+<h1>Olá!</h1>
+<p>Esta view recebeu o titulo <strong><%= titulo %></strong> via res.render().</p>
+
+<h2>Produtos disponiveis (<%= produtos.length %>)</h2>
+<ul>
+    <% produtos.forEach(function(p) { %>
+        <li>
+            <a href="/produtos/<%= p.id %>"><%= p.nome %></a>
+            — R$ <%= p.preco %>
+        </li>
+    <% }); %>
+</ul>
+
+<%- include('partials/footer') %>

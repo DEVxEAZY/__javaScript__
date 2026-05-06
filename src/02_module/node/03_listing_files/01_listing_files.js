@@ -29,6 +29,12 @@ const fs   = require("fs");
 const path = require("path");
 
 // O alvo da listagem: pasta passada por argv ou a pasta deste script.
+// process.argv é um array que contém os argumentos passados na linha de comando ao executar o Node.js.
+// O elemento de índice 2, ou seja, process.argv[2], é o primeiro argumento personalizado passado pelo usuário.
+// Por exemplo: node 01_listing_files.js minha_pasta
+// Neste caso, process.argv[2] será "minha_pasta".
+// Se nenhum argumento for passado, usamos como padrão a pasta acima do diretório atual (__dirname + "/..").
+
 const ALVO = path.resolve(process.argv[2] || __dirname + "/..");
 
 // ============================================================

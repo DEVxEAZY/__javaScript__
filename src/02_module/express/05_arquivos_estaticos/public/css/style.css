@@ -1,0 +1,48 @@
+/* ============================================================
+   public/css/style.css
+
+   Arquivo estatico — o Express le do disco e devolve com
+   Content-Type: text/css. O navegador detecta o link no <head>
+   do HTML, faz uma 2a requisicao por /css/style.css e aplica.
+   ============================================================ */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Consolas, 'Courier New', monospace;
+    background: #ffffff;
+    color: #111111;
+    max-width: 720px;
+    margin: 2em auto;
+    padding: 0 1em;
+    line-height: 1.5;
+}
+
+h1 {
+    border-bottom: 2px solid #111;
+    padding-bottom: 0.3em;
+}
+
+a {
+    color: #0033cc;
+}
+
+button {
+    background: #111;
+    color: #fff;
+    border: none;
+    padding: 0.5em 1em;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #444;
+}
+
+code {
+    background: #f0f0f0;
+    padding: 0.1em 0.3em;
+}

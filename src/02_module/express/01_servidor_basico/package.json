@@ -1,0 +1,12 @@
+{
+  "name": "01_servidor_basico",
+  "version": "1.0.0",
+  "description": "Primeira aula de Express: criar um servidor web minimalista com rotas GET e POST.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

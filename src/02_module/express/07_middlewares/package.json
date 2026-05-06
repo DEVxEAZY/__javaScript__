@@ -1,0 +1,12 @@
+{
+  "name": "07_middlewares",
+  "version": "1.0.0",
+  "description": "Aula 137 - Middlewares no Express: o que sao, como criar, ordem e tratamento de erro.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

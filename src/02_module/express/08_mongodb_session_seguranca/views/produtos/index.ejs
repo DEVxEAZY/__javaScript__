@@ -1,0 +1,30 @@
+<%- include('../partials/header') %>
+
+<h1>Produtos</h1>
+
+<% if (produtos.length === 0) { %>
+    <p>Nenhum produto. <a href="/produtos/novo">Cadastre o primeiro</a>.</p>
+<% } else { %>
+    <ul class="produtos">
+        <% produtos.forEach(function(p) { %>
+            <li>
+                <span>
+                    <strong><%= p.nome %></strong>
+                    — R$ <%= p.preco.toFixed(2) %>
+                    <small>(<%= p.categoria %>)</small>
+                </span>
+
+                <%# Form de exclusao precisa do token CSRF %>
+                <form action="/produtos/<%= p._id %>/excluir"
+                      method="POST"
+                      class="inline-form"
+                      onsubmit="return confirm('Excluir <%= p.nome %>?');">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit">Excluir</button>
+                </form>
+            </li>
+        <% }); %>
+    </ul>
+<% } %>
+
+<%- include('../partials/footer') %>

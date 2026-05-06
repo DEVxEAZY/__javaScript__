@@ -1,0 +1,4 @@
+Linha A: sobrescreveu tudo
+Linha B: appendada
+Linha C: appendada
+Linha D: appendada

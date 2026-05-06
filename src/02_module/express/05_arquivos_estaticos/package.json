@@ -1,0 +1,12 @@
+{
+  "name": "05_arquivos_estaticos",
+  "version": "1.0.0",
+  "description": "Aula 135 - Servindo arquivos estaticos com express.static.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

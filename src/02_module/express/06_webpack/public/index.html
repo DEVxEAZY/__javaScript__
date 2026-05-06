@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <title>Express + Webpack</title>
+    <style>
+        body { font-family: Consolas, monospace; max-width: 720px; margin: 2em auto; padding: 0 1em; }
+        button { font-family: inherit; padding: 0.5em 1em; }
+        #relogio { font-size: 2em; margin: 0.5em 0; }
+    </style>
+</head>
+<body>
+    <h1>Express + Webpack</h1>
+
+    <p>O JS que da vida pra esta pagina foi gerado por
+    <strong>webpack</strong> a partir de varios arquivos em
+    <code>src/</code>, e esta sendo servido como arquivo
+    estatico pelo Express:</p>
+
+    <pre>src/index.js + src/contador.js + src/relogio.js
+       ↓ webpack
+   public/dist/bundle.js
+       ↓ &lt;script src="/dist/bundle.js"&gt;
+   navegador</pre>
+
+    <h2>Contador</h2>
+    <div id="contador"></div>
+
+    <h2>Relogio</h2>
+    <div id="relogio">--:--:--</div>
+
+    <!-- O bundle e referenciado como estatico — nao precisa de
+         nenhuma rota Express dedicada pra ele. -->
+    <script src="/dist/bundle.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<%- include('../partials/header') %>
+
+<h1>Novo produto</h1>
+
+<form action="/produtos" method="POST">
+    <%# Token CSRF — sem isso o csurf devolve 403 %>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <label>
+        Nome
+        <input type="text" name="nome" required minlength="2">
+    </label>
+
+    <label>
+        Preco (R$)
+        <input type="number" name="preco" step="0.01" min="0" required>
+    </label>
+
+    <label>
+        Categoria
+        <select name="categoria">
+            <option value="eletronico">Eletronico</option>
+            <option value="vestuario">Vestuario</option>
+            <option value="alimento">Alimento</option>
+            <option value="outro" selected>Outro</option>
+        </select>
+    </label>
+
+    <button type="submit">Cadastrar</button>
+</form>
+
+<%- include('../partials/footer') %>

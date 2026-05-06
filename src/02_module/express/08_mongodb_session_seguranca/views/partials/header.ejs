@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= titulo %></title>
+    <style>
+        :root { color-scheme: dark; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Consolas, monospace;
+            background: #000;
+            color: #fff;
+            padding: 32px;
+            max-width: 720px;
+            margin-inline: auto;
+        }
+        a { color: #fff; }
+        nav { display: flex; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #444; margin-bottom: 24px; }
+        nav a.ativo { text-decoration: none; opacity: .5; }
+        h1 { margin: 0 0 24px; }
+        form { display: grid; gap: 12px; }
+        input, select, button {
+            font: inherit;
+            background: #000;
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 8px 12px;
+        }
+        button { cursor: pointer; }
+        button:hover { background: #fff; color: #000; }
+        ul.produtos { list-style: none; padding: 0; }
+        ul.produtos li {
+            border: 1px solid #444;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .flash { padding: 12px; border: 1px solid #fff; margin-bottom: 16px; }
+        .flash.erro { border-color: #ff5555; color: #ff5555; }
+        .flash.sucesso { border-color: #55ff99; color: #55ff99; }
+        .inline-form { display: inline; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/produtos" class="<%= urlAtual === '/produtos' ? 'ativo' : '' %>">Lista</a>
+        <a href="/produtos/novo" class="<%= urlAtual === '/produtos/novo' ? 'ativo' : '' %>">Novo</a>
+    </nav>
+
+    <%# As variaveis sucesso/erro vem de res.locals via injetarLocals %>
+    <% sucesso.forEach(function(msg) { %>
+        <div class="flash sucesso"><%= msg %></div>
+    <% }); %>
+    <% erro.forEach(function(msg) { %>
+        <div class="flash erro"><%= msg %></div>
+    <% }); %>

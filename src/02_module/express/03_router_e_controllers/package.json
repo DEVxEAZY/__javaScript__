@@ -1,0 +1,12 @@
+{
+  "name": "03_router_e_controllers",
+  "version": "1.0.0",
+  "description": "Aula 133 - Organizando rotas com Express Router e Controllers.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

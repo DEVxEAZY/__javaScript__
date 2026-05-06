@@ -1,0 +1,12 @@
+<%- include('partials/header') %>
+
+<h1><%= produto.nome %></h1>
+<dl>
+    <dt>ID</dt>     <dd><%= produto.id %></dd>
+    <dt>Nome</dt>   <dd><%= produto.nome %></dd>
+    <dt>Preco</dt>  <dd>R$ <%= produto.preco %></dd>
+</dl>
+
+<p><a href="/">Voltar pra lista</a></p>
+
+<%- include('partials/footer') %>
