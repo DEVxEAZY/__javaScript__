@@ -8,11 +8,18 @@
  *   npm install
  *   node server.js
  *
- * Abra:
+ * Abra (GET no navegador):
  *   http://localhost:3000/
  *   http://localhost:3000/produtos
  *   http://localhost:3000/produtos/1
  *   http://localhost:3000/usuarios
+ *
+ * POST /produtos (criar) — so em routes/produtos.js; usuarios aqui
+ * so tem GET. Exemplo no terminal (Git Bash / macOS / Linux):
+ *
+ *   curl -s -X POST http://localhost:3000/produtos \
+ *     -H "Content-Type: application/json" \
+ *     -d '{"nome":"Webcam","preco":199}'
  *
  *
  * ============================================================
@@ -53,6 +60,12 @@
  *   • Trocar o prefixo (versao da API, por exemplo) fica trivial:
  *         app.use("/v2/produtos", produtosRouter);
  *
+ * Dentro de um mesmo router, declare paths FIXOS antes dos
+ * parametrizados — por exemplo router.get("/novo", ...) antes de
+ * router.get("/:id", ...). Se "/:id" vier primeiro, "novo" vira
+ * valor de id em vez de cair na rota certa. (No nosso projeto,
+ * GET "/" ja vem antes de GET "/:id" em routes/produtos.js.)
+ *
  *
  * ============================================================
  * CONTROLLER  —  separando a LOGICA da rota
@@ -78,6 +91,10 @@
  *   routes/usuarios.js                 ← Router de usuarios
  *   controllers/produtosController.js  ← logica de produtos
  *   controllers/usuariosController.js  ← logica de usuarios
+ *
+ * Body (req.body) no POST: o arquivo 02_req_params_query_body
+ * explica express.json() e express.urlencoded() em detalhe; aqui
+ * so os reaproveitamos para criar produto. Ver tambem 07_middlewares.
  * ============================================================
  */
 
@@ -85,6 +102,7 @@
 const express = require("express");
 const app = express();
 
+// Body parsers — por que estao aqui: ver secao "ESTRUTURA DESTA AULA" no bloco do topo.
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -149,6 +167,7 @@ app.listen(PORTA, () => {
  *   server.js fica magrinho — so monta routers.
  *   routes/X.js faz o "mapa": qual verbo+path chama qual funcao.
  *   controllers/X.js implementa cada funcao.
+ *   Rotas fixas (ex.: "/", "/novo") antes de parametrizadas ("/:id").
  *
  *   Na proxima evolucao do projeto entram MODELS (dados/banco)
  *   e o controller passa a delegar pra eles. MVC classico.

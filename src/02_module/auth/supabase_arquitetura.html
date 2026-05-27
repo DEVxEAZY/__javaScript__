@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Supabase — arquitetura Auth + RLS</title>
+<style>
+  :root {
+    --bg: #fafafa; --surface: #fff; --ink: #0a0a0a; --ink-2: #525252; --ink-3: #a3a3a3;
+    --border: #e7e7e7; --req: #1d4ed8; --ok: #047857; --err: #b91c1c; --warn: #b45309;
+    --mono: ui-monospace, Consolas, monospace;
+    --sans: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: var(--sans); color: var(--ink); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 24px 48px; }
+  h1 { margin: 0; font-size: 22px; }
+  h1 .small { display: block; font-size: 0.72em; color: var(--ink-3); font-weight: 400; margin-top: 4px; }
+  .back { font-family: var(--mono); font-size: 11px; margin-bottom: 12px; }
+  .back a { color: var(--req); }
+  .layers { display: grid; gap: 10px; margin: 20px 0; }
+  .layer {
+    border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px;
+    cursor: pointer; transition: border-color 0.2s, background 0.2s, opacity 0.2s;
+    display: grid; grid-template-columns: 140px 1fr;
+    opacity: 0.9;
+  }
+  .layer:hover { border-color: var(--req); }
+  .layer.pending { opacity: 0.82; }
+  .layer.current {
+    border-color: var(--req); background: #f8faff; opacity: 1;
+    box-shadow: 0 2px 8px rgba(29,78,216,0.08);
+  }
+  .layer.done {
+    border-left: 3px solid var(--ok); background: #f0fdf4; opacity: 0.94;
+  }
+  .layer.done .name::after {
+    content: " ✓"; color: var(--ok); font-size: 12px; font-weight: 400;
+  }
+  .layer .tag { font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.08em; }
+  .layer .name { font-weight: 600; font-size: 14px; }
+  .layer .desc { font-size: 13px; color: var(--ink-2); grid-column: 2; margin-top: 4px; }
+  .console { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .btn { border: 1px solid var(--border); padding: 6px 12px; border-radius: 7px; cursor: pointer; background: var(--surface); font-size: 12px; }
+  .btn.primary { background: var(--ink); color: #fff; }
+  .flow {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; font-family: var(--mono); font-size: 11.5px; line-height: 1.7; min-height: 140px;
+  }
+  .flow-steps {
+    margin-top: 10px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .flow-step {
+    font-family: var(--mono); font-size: 11px; padding: 8px 12px 8px 32px;
+    border: 1px solid var(--border); border-radius: 8px; border-left-width: 3px;
+    position: relative; background: #fafafa; opacity: 0.85; color: var(--ink-2);
+  }
+  .flow-step .n {
+    position: absolute; left: 10px; top: 7px; width: 16px; height: 16px;
+    border-radius: 50%; background: var(--border); font-size: 9px;
+    display: flex; align-items: center; justify-content: center; font-weight: 600;
+  }
+  .flow-step.current { opacity: 1; border-left-color: var(--req); background: #eff6ff; color: var(--ink); }
+  .flow-step.current .n { background: var(--req); color: #fff; }
+  .flow-step.done { opacity: 0.92; border-left-color: var(--ok); background: #f0fdf4; color: var(--ink); }
+  .flow-step.done .n { background: var(--ok); color: #fff; font-size: 0; }
+  .flow-step.done .n::after { content: "✓"; font-size: 10px; }
+  .trace-panel {
+    margin-top: 12px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .trace-panel .label { font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.06em; margin-bottom: 8px; }
+  .trace-timeline { display: flex; flex-direction: column; gap: 10px; max-height: 380px; overflow-y: auto; }
+  .trace-timeline.empty .trace-placeholder { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-style: italic; margin: 0; }
+  .trace-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: #fafafa; }
+  .trace-card.current { border-color: var(--req); background: #eff6ff; box-shadow: 0 1px 6px rgba(29,78,216,0.12); }
+  .trace-card.done { border-left: 3px solid var(--ok); background: #f0fdf4; }
+  .trace-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-family: var(--mono); font-size: 11px; }
+  .trace-badge { width: 22px; height: 22px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+  .trace-card.current .trace-badge { background: var(--req); color: #fff; }
+  .trace-card.done .trace-badge { background: var(--ok); color: #fff; font-size: 0; }
+  .trace-card.done .trace-badge::after { content: "✓"; font-size: 11px; }
+  .trace-card-title { font-weight: 600; flex: 1; }
+  .trace-ts { font-size: 10px; color: var(--ink-3); }
+  .trace-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  @media (max-width: 800px) { .trace-cols { grid-template-columns: 1fr; } }
+  .trace-col { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; background: var(--surface); }
+  .trace-col-label { font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-bottom: 4px; }
+  .trace-col-body { font-family: var(--mono); font-size: 10px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .trace-col-body.muted { color: var(--ink-3); font-style: italic; }
+  .trace-chain { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border); font-family: var(--mono); font-size: 10px; color: var(--ink-3); line-height: 1.5; word-break: break-word; }
+  .trace-chain[hidden] { display: none; }
+  .alert {
+    display: none; margin-top: 14px; padding: 14px 16px; border-radius: 10px;
+    border: 1px solid #fecaca; background: #fef2f2; color: var(--err);
+    font-size: 13px;
+  }
+  .alert.show { display: block; }
+  .keys { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
+  .key-btn {
+    font-family: var(--mono); font-size: 11px; padding: 8px 14px;
+    border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--surface);
+  }
+  .key-btn.on { border-color: var(--ok); background: #ecfdf5; }
+  .key-btn.bad.on { border-color: var(--err); background: #fef2f2; }
+  .log { margin-top: 10px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); max-height: 160px; overflow-y: auto; }
+  .log div { padding: 3px 0; }
+  footer { margin-top: 24px; text-align: center; font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="back"><a href="00_mapa_auth.html">← 00_mapa_auth.html</a></p>
+  <h1>Supabase — Auth, PostgREST, JWT, RLS<span class="small">camadas com rastro persistente · simule sign-in e request</span></h1>
+
+  <div class="keys">
+    <button type="button" class="key-btn on" data-key="anon">anon (browser · RLS ON)</button>
+    <button type="button" class="key-btn bad" data-key="service">service_role (⚠ só servidor)</button>
+  </div>
+
+  <div class="layers" id="layers">
+    <div class="layer pending" data-id="browser">
+      <div><div class="tag">CLIENT</div><div class="name">Browser / App</div></div>
+      <div class="desc">createClient(URL, anon key) · signInWithPassword</div>
+    </div>
+    <div class="layer pending" data-id="gotrue">
+      <div><div class="tag">AUTH</div><div class="name">GoTrue</div></div>
+      <div class="desc">Valida credenciais · emite JWT access + refresh</div>
+    </div>
+    <div class="layer pending" data-id="postgrest">
+      <div><div class="tag">API</div><div class="name">PostgREST</div></div>
+      <div class="desc">REST /rest/v1/* · Authorization: Bearer JWT</div>
+    </div>
+    <div class="layer pending" data-id="postgres">
+      <div><div class="tag">DB</div><div class="name">Postgres + RLS</div></div>
+      <div class="desc">Policies USING (auth.uid() = dono_id)</div>
+    </div>
+  </div>
+
+  <div class="console">
+    <button class="btn primary" id="btnSignIn">Reproduzir sign-in</button>
+    <button class="btn" id="btnFetch">GET /rest/v1/produtos</button>
+    <button class="btn" id="btnReset">reset</button>
+    <span id="status" style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-2)">pronto</span>
+  </div>
+
+  <div class="flow" id="flow">Clique numa camada ou reproduza o fluxo. O rastro permanece visível.</div>
+  <div class="flow-steps" id="flowSteps"></div>
+
+  <div class="trace-panel">
+    <div class="label">RASTRO CUMULATIVO</div>
+    <div class="trace-timeline empty" id="traceTimeline">
+      <p class="trace-placeholder">Aguardando reprodução…</p>
+    </div>
+    <div class="trace-chain" id="traceChain" hidden></div>
+  </div>
+
+  <div class="alert" id="alertService">
+    <strong>Anti-padrão:</strong> <code>service_role</code> no frontend bypassa todas as policies RLS.
+    Qualquer usuário com DevTools pode extrair a chave do bundle. Use apenas em servidor confiável.
+  </div>
+
+  <div class="log" id="log"></div>
+  <footer>07_supabase_auth_postgres_rls.md · supabase_arquitetura.html</footer>
+</div>
+
+<script>
+const flowEl = document.getElementById("flow");
+const flowStepsEl = document.getElementById("flowSteps");
+const logEl = document.getElementById("log");
+const traceTimeline = document.getElementById("traceTimeline");
+const traceChain = document.getElementById("traceChain");
+const alertEl = document.getElementById("alertService");
+const statusEl = document.getElementById("status");
+
+let activeKey = "anon";
+let jwt = null;
+let playing = false;
+let traceSteps = [];
+let flowStepEls = [];
+let layerHistory = new Set();
+
+const LAYER_TEXT = {
+  browser: "Cliente Supabase JS:\n• createClient(SUPABASE_URL, SUPABASE_ANON_KEY)\n• auth.signInWithPassword({ email, password })",
+  gotrue: "GoTrue (Auth):\n• Verifica hash na tabela auth.users\n• Retorna session com access_token (JWT)",
+  postgrest: "PostgREST:\n• Recebe HTTP + Bearer JWT\n• Define role = authenticated\n• Encaminha SQL ao Postgres",
+  postgres: "Postgres:\nALTER TABLE produtos ENABLE ROW LEVEL SECURITY;\n\nCREATE POLICY ...\nUSING (auth.uid() = dono_id);"
+};
+
+const SIGNIN_SEQUENCE = [
+  {
+    layer: "browser", log: "signInWithPassword (client)", title: "signInWithPassword",
+    flow: LAYER_TEXT.browser,
+    client: "const supabase = createClient(URL, ANON_KEY)\n\nawait supabase.auth.signInWithPassword({\n  email: 'user@exemplo.com',\n  password: '***'\n})",
+    api: "—",
+    db: "—"
+  },
+  {
+    layer: "gotrue", log: "GoTrue → JWT emitido", title: "GoTrue emite JWT",
+    flow: "GoTrue OK:\naccess_token: eyJhbGciOiJIUzI1NiIs...\nrefresh_token: (storage seguro)",
+    client: "session persistida no client\n(localStorage ou cookie SSR)",
+    api: "GoTrue Auth API\nPOST /auth/v1/token?grant_type=password\n→ 200 { access_token, refresh_token }",
+    db: "SELECT em auth.users\n(comparar hash da senha)"
+  }
+];
+
+function addLog(t) {
+  const d = document.createElement("div");
+  d.textContent = t;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function isDash(t) {
+  const s = (t || "").trim();
+  return !s || s === "—";
+}
+
+function traceCol(label, text) {
+  const col = document.createElement("div");
+  col.className = "trace-col";
+  const lab = document.createElement("div");
+  lab.className = "trace-col-label";
+  lab.textContent = label;
+  const body = document.createElement("div");
+  body.className = "trace-col-body" + (isDash(text) ? " muted" : "");
+  body.textContent = isDash(text) ? "—" : text;
+  col.appendChild(lab);
+  col.appendChild(body);
+  return col;
+}
+
+function renderTrace() {
+  traceTimeline.innerHTML = "";
+  if (!traceSteps.length) {
+    traceTimeline.classList.add("empty");
+    const p = document.createElement("p");
+    p.className = "trace-placeholder";
+    p.textContent = "Aguardando reprodução…";
+    traceTimeline.appendChild(p);
+    traceChain.hidden = true;
+    return;
+  }
+  traceTimeline.classList.remove("empty");
+  traceSteps.forEach((step, i) => {
+    const card = document.createElement("article");
+    card.className = "trace-card";
+    if (step.state === "done") card.classList.add("done");
+    else if (step.state === "current") card.classList.add("current");
+    const head = document.createElement("div");
+    head.className = "trace-card-header";
+    const badge = document.createElement("span");
+    badge.className = "trace-badge";
+    badge.textContent = String(i + 1);
+    const title = document.createElement("span");
+    title.className = "trace-card-title";
+    title.textContent = "Passo " + (i + 1) + " · " + step.title;
+    head.appendChild(badge);
+    head.appendChild(title);
+    if (step.ts) {
+      const ts = document.createElement("span");
+      ts.className = "trace-ts";
+      ts.textContent = step.ts;
+      head.appendChild(ts);
+    }
+    card.appendChild(head);
+    const cols = document.createElement("div");
+    cols.className = "trace-cols";
+    cols.appendChild(traceCol("Client · Browser", step.client));
+    cols.appendChild(traceCol("Auth / PostgREST", step.api));
+    cols.appendChild(traceCol("Postgres · RLS", step.db));
+    card.appendChild(cols);
+    traceTimeline.appendChild(card);
+  });
+  traceChain.textContent = "Visão rápida: " + traceSteps.map((s, i) => (i + 1) + ". " + s.title).join(" → ");
+  traceChain.hidden = traceSteps.length < 2;
+  traceTimeline.scrollTop = traceTimeline.scrollHeight;
+}
+
+function pushTraceStep(stepData, state) {
+  const entry = {
+    client: stepData.client || "—",
+    api: stepData.api || "—",
+    db: stepData.db || "—",
+    title: stepData.title || stepData.trace || stepData.log || "passo",
+    state: state
+  };
+  if (state === "current") traceSteps.push(entry);
+  else if (traceSteps.length) {
+    const last = traceSteps[traceSteps.length - 1];
+    last.state = "done";
+    last.ts = new Date().toLocaleTimeString("pt-BR", { hour12: false });
+  }
+  renderTrace();
+}
+
+function pushExploreTrace(layerId) {
+  const texts = {
+    browser: { client: LAYER_TEXT.browser, api: "—", db: "—", title: "Explorar: Browser" },
+    gotrue: { client: "—", api: LAYER_TEXT.gotrue, db: "—", title: "Explorar: GoTrue" },
+    postgrest: { client: "—", api: LAYER_TEXT.postgrest, db: "—", title: "Explorar: PostgREST" },
+    postgres: { client: "—", api: "—", db: LAYER_TEXT.postgres, title: "Explorar: Postgres + RLS" }
+  };
+  const t = texts[layerId];
+  if (!t) return;
+  traceSteps.push({
+    client: t.client, api: t.api, db: t.db, title: t.title,
+    state: "done", ts: new Date().toLocaleTimeString("pt-BR", { hour12: false })
+  });
+  renderTrace();
+}
+
+function setLayerStates(currentId) {
+  document.querySelectorAll(".layer").forEach(el => {
+    const id = el.dataset.id;
+    el.classList.remove("pending", "current", "done", "on");
+    if (layerHistory.has(id) && id !== currentId) el.classList.add("done");
+    else if (id === currentId) el.classList.add("current");
+    else el.classList.add("pending");
+  });
+}
+
+function setLayer(id, fromClick) {
+  layerHistory.add(id);
+  setLayerStates(id);
+  flowEl.textContent = LAYER_TEXT[id] || "";
+  if (fromClick) {
+    addLog("camada: " + id);
+    if (!playing) pushExploreTrace(id);
+  }
+}
+
+function renderFlowStepEls(steps) {
+  flowStepsEl.innerHTML = "";
+  flowStepEls = steps.map((s, i) => {
+    const el = document.createElement("div");
+    el.className = "flow-step pending";
+    el.dataset.i = String(i);
+    const n = document.createElement("span");
+    n.className = "n";
+    n.textContent = String(i + 1);
+    el.appendChild(n);
+    el.appendChild(document.createTextNode(s.log));
+    flowStepsEl.appendChild(el);
+    return el;
+  });
+}
+
+function setFlowStepState(index, state) {
+  flowStepEls.forEach((el, i) => {
+    el.classList.remove("pending", "current", "done");
+    if (i < index) el.classList.add("done");
+    else if (i === index && state === "current") el.classList.add("current");
+    else if (i === index && state === "done") el.classList.add("done");
+    else el.classList.add("pending");
+  });
+}
+
+async function runSequence(steps, delay) {
+  if (playing) return;
+  playing = true;
+  statusEl.textContent = "executando…";
+  traceSteps = [];
+  renderTrace();
+  renderFlowStepEls(steps);
+
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    setFlowStepState(i, "current");
+    layerHistory.add(s.layer);
+    setLayerStates(s.layer);
+    flowEl.textContent = s.flow;
+    addLog(s.log);
+    pushTraceStep(s, "current");
+    await new Promise(r => setTimeout(r, delay));
+    pushTraceStep(s, "done");
+    setFlowStepState(i, "done");
+  }
+
+  statusEl.textContent = "concluído";
+  playing = false;
+}
+
+document.querySelectorAll(".layer").forEach(el => {
+  el.addEventListener("click", () => setLayer(el.dataset.id, true));
+});
+
+document.querySelectorAll(".key-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".key-btn").forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+    activeKey = btn.dataset.key;
+    alertEl.classList.toggle("show", activeKey === "service");
+    if (activeKey === "service") {
+      flowEl.textContent = "service_role no browser = acesso total ao banco.\nNUNCA commite nem embuta no Vite/React.";
+      addLog("⚠ chave service_role selecionada no client");
+      if (!playing) {
+        traceSteps.push({
+          client: "createClient(URL, SERVICE_ROLE_KEY)\n⚠ chave no bundle",
+          api: "Todas as requests bypassam RLS",
+          db: "Policies ignoradas",
+          title: "Anti-padrão: service_role no client",
+          state: "done",
+          ts: new Date().toLocaleTimeString("pt-BR", { hour12: false })
+        });
+        renderTrace();
+      }
+    }
+  });
+});
+
+document.getElementById("btnSignIn").addEventListener("click", async () => {
+  jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+  const steps = SIGNIN_SEQUENCE.map(s =>
+    s.layer === "gotrue"
+      ? { ...s, flow: "GoTrue OK:\naccess_token: " + jwt + "\nrefresh_token: (httpOnly cookie ou storage seguro)" }
+      : s
+  );
+  await runSequence(steps, 800);
+});
+
+document.getElementById("btnFetch").addEventListener("click", async () => {
+  if (!jwt) {
+    flowEl.textContent = "Faça sign-in antes — sem JWT o PostgREST nega.";
+    addLog("401 — sem Authorization");
+    traceSteps.push({
+      client: "fetch('/rest/v1/produtos')\n// sem header Authorization",
+      api: "PostgREST → 401 JWT required",
+      db: "—",
+      title: "401 sem JWT",
+      state: "done",
+      ts: new Date().toLocaleTimeString("pt-BR", { hour12: false })
+    });
+    renderTrace();
+    return;
+  }
+
+  const steps = activeKey === "service"
+    ? [
+        {
+          layer: "postgrest", log: "GET com service_role", title: "GET produtos (service_role)",
+          flow: "PostgREST + service_role:\nAuthorization: Bearer service_role\n→ role bypass",
+          client: "GET /rest/v1/produtos\nAuthorization: Bearer <service_role>",
+          api: "PostgREST valida JWT\nrole = service_role (bypass)",
+          db: "—"
+        },
+        {
+          layer: "postgres", log: "200 todas as rows — PERIGO", title: "RLS bypass",
+          flow: "Com service_role: RLS BYPASS\n→ retorna TODAS as linhas de produtos",
+          client: "200 OK — lista completa",
+          api: "—",
+          db: "RLS desativado para service_role\nSELECT * FROM produtos\n→ todas as linhas"
+        }
+      ]
+    : [
+        {
+          layer: "postgrest", log: "GET + Bearer JWT usuário", title: "GET produtos (JWT usuário)",
+          flow: LAYER_TEXT.postgrest,
+          client: "GET /rest/v1/produtos\nAuthorization: Bearer eyJhbGciOi...",
+          api: "PostgREST → role authenticated\nrepassa JWT ao Postgres",
+          db: "—"
+        },
+        {
+          layer: "postgres", log: "200 subset pela policy", title: "RLS auth.uid()",
+          flow: "Com anon + JWT do usuário:\nRLS filtra → só rows onde dono_id = auth.uid()",
+          client: "200 OK — subset do usuário",
+          api: "—",
+          db: "SELECT * FROM produtos\nWHERE dono_id = auth.uid()\n-- policy USING (...)"
+        }
+      ];
+
+  if (activeKey === "service") alertEl.classList.add("show");
+  await runSequence(steps, 750);
+});
+
+document.getElementById("btnReset").addEventListener("click", () => {
+  playing = false;
+  jwt = null;
+  traceSteps = [];
+  layerHistory.clear();
+  logEl.innerHTML = "";
+  flowStepsEl.innerHTML = "";
+  flowStepEls = [];
+  flowEl.textContent = "Reset. Clique numa camada ou reproduza o fluxo.";
+  renderTrace();
+  statusEl.textContent = "pronto";
+  document.querySelectorAll(".layer").forEach(el => {
+    el.classList.remove("current", "done", "on");
+    el.classList.add("pending");
+  });
+  alertEl.classList.remove("show");
+  document.querySelector('.key-btn[data-key="anon"]').classList.add("on");
+  document.querySelector('.key-btn[data-key="service"]').classList.remove("on");
+  activeKey = "anon";
+});
+
+setLayer("browser", false);
+</script>
+</body>
+</html>

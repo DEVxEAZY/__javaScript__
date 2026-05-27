@@ -1,0 +1,16 @@
+{
+  "name": "lab-dotenv-mongoose",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Laboratorio mongoDB da aula: dotenv + mongoose.connect + modelo + seed opcional.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongoose": "^8.13.2"
+  }
+}

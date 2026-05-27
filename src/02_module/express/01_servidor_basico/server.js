@@ -17,6 +17,7 @@
  *   http://localhost:3000/          → home
  *   http://localhost:3000/contato   → contato (GET)
  *   http://localhost:3000/sobre     → sobre
+ *   http://localhost:3000/ejs       → página com template EJS (views/)
  *   http://localhost:3000/qualquer  → 404 "Cannot GET /qualquer"
  *
  * Como parar:
@@ -95,6 +96,7 @@
 // O require devolve uma FUNÇÃO. Por convenção, guardamos em
 // uma constante chamada `express` (mesmo nome do pacote). Você
 // vai ver isso em qualquer tutorial — é o padrão da comunidade.
+const path = require("path");
 const express = require("express");
 
 // Chamar `express()` cria uma INSTÂNCIA da aplicação. É essa
@@ -105,6 +107,24 @@ const express = require("express");
 // API, outra para painel admin), mas em projetos pequenos é
 // uma só.
 const app = express();
+
+
+// ────────────────────────────────────────────────────────────
+// VIEWS (EJS) — app.set + pasta views/
+// ────────────────────────────────────────────────────────────
+//
+// `app.set` guarda opções na instância do Express. Duas usadas
+// com templates:
+//
+//   • "view engine" → qual biblioteca renderiza (ejs, pug…).
+//   • "views"       → pasta onde ficam os arquivos .ejs (path
+//                     absoluto evita surpresa ao rodar de outro cwd).
+//
+// Depois disso, `res.render("exemplo", { ... })` procura
+// views/exemplo.ejs e injeta as variáveis no template.
+//
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 
 
 // ────────────────────────────────────────────────────────────
@@ -161,7 +181,7 @@ app.get("/", (req, res) => {
             <button type="submit">Enviar</button>
         </form>
         <hr />
-        <p>Tente também: <a href="/sobre">/sobre</a> ou <a href="/contato">/contato</a></p>
+        <p>Tente também: <a href="/sobre">/sobre</a>, <a href="/contato">/contato</a> ou <a href="/ejs">/ejs</a> (EJS)</p>
     `);
 });
 
@@ -184,6 +204,22 @@ app.get("/sobre", (req, res) => {
 // ============================================================
 app.get("/contato", (req, res) => {
     res.send("<h1>Contato</h1><p>Obrigado por entrar em contato com a gente.</p>");
+});
+
+
+// ============================================================
+// 3b. ROTA GET /ejs — renderizando views/exemplo.ejs
+// ============================================================
+//
+// `res.render` combina o nome do arquivo (sem extensão) com a
+// pasta em app.set("views") e passa um objeto de variáveis
+// para o template.
+app.get("/ejs", (req, res) => {
+    res.render("exemplo", {
+        titulo: "Exemplo EJS",
+        nome: "visitante",
+        itens: ["Express", "app.set", "res.render"],
+    });
 });
 
 
@@ -282,13 +318,14 @@ app.listen(PORTA, () => {
  *   • A cada mudança no código, você precisa parar (Ctrl+C)
  *     e rodar `node server.js` de novo. Cansativo!
  *
- *   • SOLUÇÃO (próxima aula): instalar `nodemon` como dev
+ *   • SOLUÇÃO (parte 2): instalar `nodemon` como dev
  *     dependency. Ele observa os arquivos e reinicia o server
  *     automaticamente a cada save. Equivalente do hot-reload
  *     do front-end:
  *         npm install --save-dev nodemon
- *         npx nodemon server.js
+ *         npm run dev
  *
+ *     Veja o arquivo `parte_2_nodemon.md` nesta pasta.
  *
  * ============================================================
  * INSPECIONANDO REQUISIÇÕES NO NAVEGADOR

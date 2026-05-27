@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mapa Auth — hub de cenários</title>
+<style>
+  :root {
+    --bg: #fafafa; --surface: #fff; --ink: #0a0a0a; --ink-2: #525252; --ink-3: #a3a3a3;
+    --border: #e7e7e7; --req: #1d4ed8; --res: #6d28d9; --ok: #047857; --err: #b91c1c;
+    --mono: ui-monospace, "JetBrains Mono", Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.5; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 36px 28px 60px; }
+  h1 { margin: 0; font-size: clamp(20px, 2.4vw, 26px); font-weight: 600; }
+  h1 .small { display: block; font-size: 0.7em; color: var(--ink-3); font-weight: 400; margin-top: 6px; }
+  .console {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; margin: 18px 0; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+  }
+  .btn {
+    background: var(--surface); border: 1px solid var(--border); padding: 6px 12px;
+    border-radius: 7px; cursor: pointer; font-size: 12.5px;
+  }
+  .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .scenario { font-family: var(--mono); font-size: 12px; padding: 6px 10px; border-radius: 7px; border: 1px solid var(--border); }
+  .grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; margin-top: 16px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .map {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    min-height: 420px; padding: 24px; position: relative;
+  }
+  .hub-links { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+  .hub-links a {
+    font-family: var(--mono); font-size: 11px; padding: 8px 12px;
+    border: 1px solid var(--border); border-radius: 8px; text-decoration: none; color: var(--ink);
+  }
+  .hub-links a:hover { border-color: var(--req); color: var(--req); }
+  .node-row { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+  .node {
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; text-align: center;
+    min-width: 100px; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    opacity: 0.88; background: #fafafa;
+  }
+  .node .label { font-size: 12px; font-weight: 500; }
+  .node .sub { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+  .node.pending { opacity: 0.8; color: var(--ink-2); }
+  .node.active {
+    border-color: var(--req); box-shadow: 0 4px 12px rgba(29,78,216,0.1);
+    background: #eff6ff; opacity: 1;
+  }
+  .node.done {
+    opacity: 0.92; border-left: 3px solid var(--ok); background: #f0fdf4;
+  }
+  .node.done .label::after { content: " ✓"; color: var(--ok); font-size: 11px; }
+  .trace-bar {
+    margin-top: 12px; padding: 10px 14px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px;
+    font-family: var(--mono); font-size: 11px; line-height: 1.55;
+  }
+  .trace-bar .label { font-size: 10px; color: var(--ink-3); letter-spacing: 0.06em; margin-bottom: 8px; }
+  .trace-timeline { display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; }
+  .trace-timeline.empty .trace-placeholder { font-family: var(--mono); font-size: 11px; color: var(--ink-3); font-style: italic; margin: 0; }
+  .trace-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: #fafafa; }
+  .trace-card.current { border-color: var(--req); background: #eff6ff; box-shadow: 0 1px 6px rgba(29,78,216,0.12); }
+  .trace-card.done { border-left: 3px solid var(--ok); background: #f0fdf4; }
+  .trace-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-family: var(--mono); font-size: 11px; }
+  .trace-badge { width: 22px; height: 22px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+  .trace-card.current .trace-badge { background: var(--req); color: #fff; }
+  .trace-card.done .trace-badge { background: var(--ok); color: #fff; font-size: 0; }
+  .trace-card.done .trace-badge::after { content: "✓"; font-size: 11px; }
+  .trace-card-title { font-weight: 600; flex: 1; }
+  .trace-ts { font-size: 10px; color: var(--ink-3); }
+  .trace-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  @media (max-width: 800px) { .trace-cols { grid-template-columns: 1fr; } }
+  .trace-col { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; background: var(--surface); }
+  .trace-col-label { font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-bottom: 4px; }
+  .trace-col-body { font-family: var(--mono); font-size: 10px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .trace-col-body.muted { color: var(--ink-3); font-style: italic; }
+  .trace-chain { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border); font-family: var(--mono); font-size: 10px; color: var(--ink-3); line-height: 1.5; word-break: break-word; }
+  .trace-chain[hidden] { display: none; }
+  .arrow { font-family: var(--mono); color: var(--ink-3); font-size: 18px; }
+  .panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    display: flex; flex-direction: column; min-height: 420px;
+  }
+  .panel .head { padding: 10px 16px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .log { flex: 1; overflow-y: auto; padding: 12px 16px; font-family: var(--mono); font-size: 11.5px; }
+  .log .line { display: flex; gap: 10px; padding: 2px 0; opacity: 1; }
+  .log .line .t { color: var(--ink-3); min-width: 64px; font-size: 10px; }
+  .log .line.req .m { color: var(--req); }
+  .log .line.res .m { color: var(--res); }
+  .log .line.ok .m { color: var(--ok); }
+  .status { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+  footer { margin-top: 24px; text-align: center; font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Mapa Auth<span class="small">hub — sessão, JWT, Postgres e Supabase (sem servidor nesta pasta)</span></h1>
+  </header>
+
+  <div class="hub-links">
+    <a href="09_arquitetura_auth_profissional.md">09 · arquitetura profissional</a>
+    <a href="postgres_fluxo.html">postgres_fluxo.html →</a>
+    <a href="supabase_arquitetura.html">supabase_arquitetura.html →</a>
+    <a href="AULA.md">AULA.md</a>
+    <a href="../express/08_mongodb_session_seguranca/">express/08 (Helmet + CSRF)</a>
+  </div>
+
+  <div class="console">
+    <button class="btn primary" id="btnPlay">Reproduzir passos</button>
+    <button class="btn" id="btnReset">reset</button>
+    <label style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">cenário</label>
+    <select class="scenario" id="scenario">
+      <option value="get-login">GET /login · formulário</option>
+      <option value="post-login-session">POST /login · sessão + cookie</option>
+      <option value="post-login-jwt">POST /login · JWT Bearer</option>
+      <option value="post-cadastro">POST /cadastro · Postgres</option>
+      <option value="supabase-sign-in">supabase · signInWithPassword</option>
+    </select>
+    <span class="status" id="status">pronto</span>
+  </div>
+
+  <div class="grid">
+    <div class="map" id="map">
+      <div class="node-row" id="nodes"></div>
+      <div class="trace-bar">
+        <div class="label">RASTRO CUMULATIVO</div>
+        <div class="trace-timeline empty" id="traceTimeline">
+          <p class="trace-placeholder">Aguardando reprodução…</p>
+        </div>
+        <div class="trace-chain" id="traceChain" hidden></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="head">request log</div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <footer>src/02_module/auth · 00_mapa_auth.html</footer>
+</div>
+
+<script>
+const SCENARIOS = {
+  "get-login": {
+    nodes: ["Browser", "Express", "View EJS"],
+    seq: [
+      {
+        title: "GET /login", log: "GET /login", kind: "req",
+        http: "GET /login HTTP/1.1\nAccept: text/html",
+        app: "rota pública — exigirLogin não montado",
+        data: "—"
+      },
+      {
+        title: "Rota pública", log: "exigirLogin não roda (rota pública)", kind: "",
+        http: "—",
+        app: "router.get('/login', loginController.form)",
+        data: "—"
+      },
+      {
+        title: "Render formulário", log: "res.render('login') — sem cookie ainda", kind: "res",
+        http: "HTTP/1.1 200 OK\nContent-Type: text/html\n(sem Set-Cookie)",
+        app: "res.render('login', { erro: null })",
+        data: "—"
+      }
+    ]
+  },
+  "post-login-session": {
+    nodes: ["Browser", "Express", "Postgres", "Mongo sessions"],
+    seq: [
+      {
+        title: "POST /login", log: "POST /login { email, senha }", kind: "req",
+        http: "POST /login\nContent-Type: application/json\n{ email, senha }",
+        app: "authController.login",
+        data: "—"
+      },
+      {
+        title: "SELECT email", log: "SELECT ... WHERE email = $1", kind: "req",
+        http: "—",
+        app: "pool.query(SELECT ...)",
+        data: "SELECT id, senha_hash, nome\nFROM usuarios\nWHERE email = $1\n-- $1 = 'ana@exemplo.com'"
+      },
+      {
+        title: "bcrypt OK", log: "bcrypt.compare → ok", kind: "ok",
+        http: "—",
+        app: "bcrypt.compare(senha, hash) → true",
+        data: "—"
+      },
+      {
+        title: "Sessão", log: "req.session.regenerate + usuario { id, nome }", kind: "ok",
+        http: "—",
+        app: "req.session.regenerate()\nreq.session.usuario = { id, nome }",
+        data: "store em MongoDB\n(collection sessions)"
+      },
+      {
+        title: "Set-Cookie", log: "Set-Cookie: connect.sid · HttpOnly", kind: "res",
+        http: "Set-Cookie: connect.sid=...\n  HttpOnly; SameSite=Lax",
+        app: "express-session + connect-mongo",
+        data: "—"
+      },
+      {
+        title: "Redirect painel", log: "302 → /painel", kind: "res",
+        http: "HTTP/1.1 302\nLocation: /painel",
+        app: "res.redirect('/painel')",
+        data: "—"
+      }
+    ]
+  },
+  "post-login-jwt": {
+    nodes: ["Browser", "API Express", "jwt.verify"],
+    seq: [
+      {
+        title: "POST /api/login", log: "POST /api/login { email, senha }", kind: "req",
+        http: "POST /api/login\n{ email, senha }",
+        app: "apiAuthController.login",
+        data: "SELECT / compare (Postgres)"
+      },
+      {
+        title: "Emitir JWT", log: "AuthN ok → jwt.sign(...)", kind: "ok",
+        http: "—",
+        app: "jwt.sign({ sub: id }, secret,\n  { expiresIn: '15m' })",
+        data: "—"
+      },
+      {
+        title: "200 + token", log: "200 { accessToken: 'eyJ...' }", kind: "res",
+        http: "HTTP/1.1 200\n{ accessToken: 'eyJhbGci...' }",
+        app: "res.json({ accessToken })",
+        data: "—"
+      },
+      {
+        title: "GET /api/perfil", log: "GET /api/perfil · Bearer ...", kind: "req",
+        http: "GET /api/perfil\nAuthorization: Bearer eyJ...",
+        app: "exigirJwt middleware",
+        data: "—"
+      },
+      {
+        title: "JWT válido", log: "exigirJwt → req.usuario", kind: "ok",
+        http: "200 { id, email }",
+        app: "jwt.verify → req.usuario\n(sem cookie / sem CSRF)",
+        data: "—"
+      }
+    ]
+  },
+  "post-cadastro": {
+    nodes: ["Browser", "authController", "Postgres"],
+    seq: [
+      {
+        title: "POST /cadastro", log: "POST /cadastro", kind: "req",
+        http: "POST /cadastro\n{ email, senha, nome }",
+        app: "authController.cadastro",
+        data: "—"
+      },
+      {
+        title: "Hash senha", log: "bcrypt.hash → senha_hash", kind: "req",
+        http: "—",
+        app: "bcrypt.hash(senha, 12)",
+        data: "—"
+      },
+      {
+        title: "INSERT", log: "INSERT INTO usuarios ($1,$2,$3)", kind: "ok",
+        http: "—",
+        app: "pool.query(INSERT...)",
+        data: "INSERT INTO usuarios\n(email, senha_hash, nome)\nVALUES ($1,$2,$3)"
+      },
+      {
+        title: "Redirect login", log: "302 /login", kind: "res",
+        http: "302 Location: /login",
+        app: "res.redirect('/login')",
+        data: "ver postgres_fluxo.html"
+      }
+    ]
+  },
+  "supabase-sign-in": {
+    nodes: ["Browser", "GoTrue", "PostgREST", "Postgres RLS"],
+    seq: [
+      {
+        title: "signInWithPassword", log: "signInWithPassword(...)", kind: "req",
+        http: "—",
+        app: "supabase.auth.signInWithPassword({ email, password })",
+        data: "—"
+      },
+      {
+        title: "GoTrue JWT", log: "GoTrue valida → JWT", kind: "ok",
+        http: "—",
+        app: "GoTrue Auth API",
+        data: "auth.users — valida hash"
+      },
+      {
+        title: "GET REST", log: "GET /rest/v1/... Bearer JWT", kind: "req",
+        http: "GET /rest/v1/tabela\nAuthorization: Bearer eyJ...",
+        app: "PostgREST",
+        data: "—"
+      },
+      {
+        title: "RLS", log: "policy auth.uid()", kind: "ok",
+        http: "200 subset",
+        app: "—",
+        data: "USING (auth.uid() = dono_id)"
+      },
+      {
+        title: "Detalhe", log: "ver supabase_arquitetura.html", kind: "res",
+        http: "—",
+        app: "supabase_arquitetura.html",
+        data: "—"
+      }
+    ]
+  }
+};
+
+let playing = false;
+let speed = 1;
+let traceSteps = [];
+const logEl = document.getElementById("log");
+const nodesEl = document.getElementById("nodes");
+const statusEl = document.getElementById("status");
+const traceTimeline = document.getElementById("traceTimeline");
+const traceChain = document.getElementById("traceChain");
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms / speed)); }
+
+function isDash(t) {
+  const s = (t || "").trim();
+  return !s || s === "—";
+}
+
+function traceCol(label, text) {
+  const col = document.createElement("div");
+  col.className = "trace-col";
+  const lab = document.createElement("div");
+  lab.className = "trace-col-label";
+  lab.textContent = label;
+  const body = document.createElement("div");
+  body.className = "trace-col-body" + (isDash(text) ? " muted" : "");
+  body.textContent = isDash(text) ? "—" : text;
+  col.appendChild(lab);
+  col.appendChild(body);
+  return col;
+}
+
+function renderTrace() {
+  traceTimeline.innerHTML = "";
+  if (!traceSteps.length) {
+    traceTimeline.classList.add("empty");
+    const p = document.createElement("p");
+    p.className = "trace-placeholder";
+    p.textContent = "Aguardando reprodução…";
+    traceTimeline.appendChild(p);
+    traceChain.hidden = true;
+    return;
+  }
+  traceTimeline.classList.remove("empty");
+  traceSteps.forEach((step, i) => {
+    const card = document.createElement("article");
+    card.className = "trace-card";
+    if (step.state === "done") card.classList.add("done");
+    else if (step.state === "current") card.classList.add("current");
+    const head = document.createElement("div");
+    head.className = "trace-card-header";
+    const badge = document.createElement("span");
+    badge.className = "trace-badge";
+    badge.textContent = String(i + 1);
+    const title = document.createElement("span");
+    title.className = "trace-card-title";
+    title.textContent = "Passo " + (i + 1) + " · " + step.title;
+    head.appendChild(badge);
+    head.appendChild(title);
+    if (step.ts) {
+      const ts = document.createElement("span");
+      ts.className = "trace-ts";
+      ts.textContent = step.ts;
+      head.appendChild(ts);
+    }
+    card.appendChild(head);
+    const cols = document.createElement("div");
+    cols.className = "trace-cols";
+    cols.appendChild(traceCol("HTTP", step.http));
+    cols.appendChild(traceCol("Express / App", step.app));
+    cols.appendChild(traceCol("Dados", step.data));
+    card.appendChild(cols);
+    traceTimeline.appendChild(card);
+  });
+  traceChain.textContent = "Visão rápida: " + traceSteps.map((s, i) => (i + 1) + ". " + s.title).join(" → ");
+  traceChain.hidden = traceSteps.length < 2;
+  traceTimeline.scrollTop = traceTimeline.scrollHeight;
+}
+
+function pushTraceStep(stepData, state) {
+  const entry = {
+    http: stepData.http || "—",
+    app: stepData.app || "—",
+    data: stepData.data || "—",
+    title: stepData.title || stepData.log,
+    state: state
+  };
+  if (state === "current") traceSteps.push(entry);
+  else if (traceSteps.length) {
+    const last = traceSteps[traceSteps.length - 1];
+    last.state = "done";
+    last.ts = new Date().toLocaleTimeString("pt-BR", { hour12: false });
+  }
+  renderTrace();
+}
+
+function addLog(text, kind) {
+  const line = document.createElement("div");
+  line.className = "line" + (kind ? " " + kind : "");
+  const t = new Date().toLocaleTimeString("pt-BR", { hour12: false });
+  line.innerHTML = `<span class="t">${t}</span><span class="m">${text}</span>`;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function renderNodes(names) {
+  nodesEl.innerHTML = "";
+  names.forEach((name, i) => {
+    if (i > 0) {
+      const arr = document.createElement("span");
+      arr.className = "arrow";
+      arr.textContent = "→";
+      nodesEl.appendChild(arr);
+    }
+    const d = document.createElement("div");
+    d.className = "node pending";
+    d.dataset.i = String(i);
+    d.innerHTML = `<div class="label">${name}</div>`;
+    nodesEl.appendChild(d);
+  });
+}
+
+function setActiveNode(i) {
+  nodesEl.querySelectorAll(".node").forEach((n, j) => {
+    n.classList.remove("pending", "active", "done");
+    if (j < i) n.classList.add("done");
+    else if (j === i) n.classList.add("active");
+    else n.classList.add("pending");
+  });
+}
+
+function markAllNodesDone() {
+  nodesEl.querySelectorAll(".node").forEach(n => {
+    n.classList.remove("pending", "active");
+    n.classList.add("done");
+  });
+}
+
+async function play() {
+  if (playing) return;
+  playing = true;
+  statusEl.textContent = "executando…";
+  const key = document.getElementById("scenario").value;
+  const sc = SCENARIOS[key];
+  logEl.innerHTML = "";
+  traceSteps = [];
+  renderTrace();
+  renderNodes(sc.nodes);
+  const stepMs = 700;
+  for (let i = 0; i < sc.seq.length; i++) {
+    setActiveNode(Math.min(i, sc.nodes.length - 1));
+    const step = sc.seq[i];
+    addLog(step.log, step.kind || "");
+    pushTraceStep(step, "current");
+    await sleep(stepMs);
+    pushTraceStep(step, "done");
+  }
+  markAllNodesDone();
+  statusEl.textContent = "concluído";
+  playing = false;
+}
+
+function reset() {
+  playing = false;
+  logEl.innerHTML = "";
+  traceSteps = [];
+  renderTrace();
+  statusEl.textContent = "pronto";
+  const sc = SCENARIOS[document.getElementById("scenario").value];
+  renderNodes(sc.nodes);
+}
+
+document.getElementById("btnPlay").addEventListener("click", play);
+document.getElementById("btnReset").addEventListener("click", reset);
+document.getElementById("scenario").addEventListener("change", reset);
+
+reset();
+</script>
+</body>
+</html>

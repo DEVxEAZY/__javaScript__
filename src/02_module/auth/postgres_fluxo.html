@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Postgres Auth — fluxo visual</title>
+<style>
+  :root {
+    --bg: #fafafa; --surface: #fff; --ink: #0a0a0a; --ink-2: #525252; --ink-3: #a3a3a3;
+    --border: #e7e7e7; --req: #1d4ed8; --res: #6d28d9; --ok: #047857; --err: #b91c1c;
+    --mono: ui-monospace, Consolas, monospace;
+    --sans: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: var(--sans); color: var(--ink); }
+  .wrap { max-width: 1480px; margin: 0 auto; padding: 28px 24px 48px; }
+  h1 { margin: 0; font-size: 22px; font-weight: 600; }
+  h1 .small { display: block; font-size: 0.72em; color: var(--ink-3); font-weight: 400; margin-top: 4px; }
+  .console {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; margin: 16px 0;
+  }
+  .btn { border: 1px solid var(--border); background: var(--surface); padding: 6px 12px; border-radius: 7px; cursor: pointer; font-size: 12px; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  select, .toggle-label { font-family: var(--mono); font-size: 12px; }
+  .toggle-wrap { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
+  .toggle-wrap input { accent-color: var(--err); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+  @media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } }
+  .col {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    min-height: 200px; display: flex; flex-direction: column;
+  }
+  .col .head {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.06em;
+  }
+  .col .body { padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .col.active { border-color: var(--req); box-shadow: 0 2px 8px rgba(29,78,216,0.08); }
+  .col.http.active { border-color: var(--req); }
+  .col.express.active { border-color: var(--res); }
+  .col.sql.active { border-color: var(--ok); }
+  .step {
+    font-family: var(--mono); font-size: 11px; line-height: 1.55; white-space: pre-wrap;
+    padding: 8px 10px 8px 36px; border-radius: 8px; border: 1px solid var(--border);
+    border-left-width: 3px; position: relative; background: #fafafa;
+    opacity: 0.88; color: var(--ink-2); transition: border-color 0.2s, background 0.2s, opacity 0.2s;
+  }
+  .step .num {
+    position: absolute; left: 10px; top: 8px; width: 18px; height: 18px;
+    border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center;
+    background: var(--border); color: var(--ink-2); font-weight: 600;
+  }
+  .step.pending { opacity: 0.78; }
+  .step.current {
+    opacity: 1; color: var(--ink); border-left-color: var(--req);
+    background: #eff6ff; box-shadow: 0 1px 4px rgba(29,78,216,0.1);
+  }
+  .step.current .num { background: var(--req); color: #fff; }
+  .step.done {
+    opacity: 0.92; color: var(--ink); border-left-color: var(--ok); background: #f0fdf4;
+  }
+  .step.done .num { background: var(--ok); color: #fff; font-size: 0; }
+  .step.done .num::after { content: "✓"; font-size: 11px; line-height: 18px; }
+  .step.empty { opacity: 0.5; font-style: italic; }
+  .col-idle {
+    font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--ink-2);
+    padding: 16px 12px; margin: 0; border: 1px dashed var(--border); border-radius: 8px;
+    background: #fafafa;
+  }
+  .col-idle strong { color: var(--ink); font-weight: 600; }
+  .trace-panel {
+    margin-top: 12px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .trace-panel .label {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .trace-timeline { display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
+  .trace-timeline.empty .trace-placeholder {
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-style: italic; margin: 0;
+  }
+  .trace-card {
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+    background: #fafafa; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  .trace-card.current {
+    border-color: var(--req); background: #eff6ff;
+    box-shadow: 0 1px 6px rgba(29,78,216,0.12);
+  }
+  .trace-card.done { border-left: 3px solid var(--ok); background: #f0fdf4; }
+  .trace-card-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .trace-badge {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--ink-2); flex-shrink: 0;
+  }
+  .trace-card.current .trace-badge { background: var(--req); color: #fff; }
+  .trace-card.done .trace-badge { background: var(--ok); color: #fff; font-size: 0; }
+  .trace-card.done .trace-badge::after { content: "✓"; font-size: 11px; }
+  .trace-card-title { font-weight: 600; color: var(--ink); flex: 1; }
+  .trace-ts { font-size: 10px; color: var(--ink-3); }
+  .trace-cols {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+  }
+  @media (max-width: 900px) { .trace-cols { grid-template-columns: 1fr; } }
+  .trace-col {
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; background: var(--surface);
+  }
+  .trace-col-label {
+    font-family: var(--mono); font-size: 9px; color: var(--ink-3); letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .trace-col-body {
+    font-family: var(--mono); font-size: 10px; line-height: 1.5; white-space: pre-wrap;
+    color: var(--ink); word-break: break-word;
+  }
+  .trace-col-body.muted { color: var(--ink-3); font-style: italic; }
+  .log-panel {
+    margin-top: 10px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; max-height: 180px; overflow-y: auto; padding: 10px 14px;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .log-panel .line { padding: 2px 0; color: var(--ink-2); }
+  .log-panel .line.err { color: var(--err); }
+  .log-panel .line.ok { color: var(--ok); }
+  .back { font-family: var(--mono); font-size: 11px; margin-bottom: 12px; }
+  .back a { color: var(--req); }
+  footer { margin-top: 20px; text-align: center; font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="back"><a href="00_mapa_auth.html">← 00_mapa_auth.html</a></p>
+  <h1>Postgres + Express — fluxo de auth<span class="small">simulação educativa · sem banco real · rastro persistente</span></h1>
+
+  <div class="console">
+    <button class="btn primary" id="btnPlay">Reproduzir passos</button>
+    <button class="btn" id="btnPrev" type="button" title="Passo anterior">← Anterior</button>
+    <button class="btn" id="btnNext" type="button" title="Próximo passo">Próximo →</button>
+    <button class="btn" id="btnReset">reset</button>
+    <select id="scenario">
+      <option value="cadastro">Cadastro</option>
+      <option value="login-ok">Login OK</option>
+      <option value="login-fail">Login falha</option>
+      <option value="protegida">Rota protegida</option>
+      <option value="sqli">Ataque SQL injection</option>
+    </select>
+    <div class="toggle-wrap" id="sqliToggle" hidden>
+      <label class="toggle-label"><input type="checkbox" id="vulnQuery" /> query vulnerável (concatenação)</label>
+    </div>
+    <span id="stepIndicator" style="font-family:var(--mono);font-size:11px;color:var(--ink-2)">passo — / —</span>
+    <span id="status" style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-2)">pronto</span>
+  </div>
+
+  <div class="cols">
+    <div class="col http" id="colHttp">
+      <div class="head">HTTP · Browser</div>
+      <div class="body" id="stepsHttp"></div>
+    </div>
+    <div class="col express" id="colExpress">
+      <div class="head">Express · Controller / Middleware</div>
+      <div class="body" id="stepsExpress"></div>
+    </div>
+    <div class="col sql" id="colSql">
+      <div class="head">Postgres · SQL (simulado)</div>
+      <div class="body" id="stepsSql"></div>
+    </div>
+  </div>
+
+  <div class="trace-panel">
+    <div class="label">RASTRO CUMULATIVO — cada passo abaixo repete HTTP, Express e Postgres (não some após animar)</div>
+    <div class="trace-timeline empty" id="traceTimeline">
+      <p class="trace-placeholder">Aguardando reprodução…</p>
+    </div>
+  </div>
+
+  <div class="log-panel" id="log"></div>
+  <footer>06_postgres_usuarios_e_queries.md · postgres_fluxo.html</footer>
+</div>
+
+<script>
+const stepsHttp = document.getElementById("stepsHttp");
+const stepsExpress = document.getElementById("stepsExpress");
+const stepsSql = document.getElementById("stepsSql");
+const logEl = document.getElementById("log");
+const traceTimeline = document.getElementById("traceTimeline");
+const sqliToggle = document.getElementById("sqliToggle");
+const vulnCheck = document.getElementById("vulnQuery");
+const scenarioEl = document.getElementById("scenario");
+const btnPrev = document.getElementById("btnPrev");
+const btnNext = document.getElementById("btnNext");
+const stepIndicator = document.getElementById("stepIndicator");
+
+let playing = false;
+/** Índice do passo visível no modo manual (-1 = nenhum) */
+let manualIndex = -1;
+/** @type {{ http: string, express: string, sql: string, title: string, ts?: string, state: string }[]} */
+let traceSteps = [];
+
+function log(msg, cls) {
+  const d = document.createElement("div");
+  d.className = "line" + (cls ? " " + cls : "");
+  d.textContent = msg;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setCols(active) {
+  ["colHttp", "colExpress", "colSql"].forEach(id => document.getElementById(id).classList.remove("active"));
+  if (active === "http") document.getElementById("colHttp").classList.add("active");
+  if (active === "express") document.getElementById("colExpress").classList.add("active");
+  if (active === "sql") document.getElementById("colSql").classList.add("active");
+}
+
+function isEmptyText(t) {
+  const s = (t || "").trim();
+  return !s || s === "—";
+}
+
+function makeStepEl(num, text, empty) {
+  const el = document.createElement("div");
+  el.className = "step pending" + (empty ? " empty" : "");
+  el.dataset.i = String(num - 1);
+  const numEl = document.createElement("span");
+  numEl.className = "num";
+  numEl.textContent = String(num);
+  el.appendChild(numEl);
+  el.appendChild(document.createTextNode(empty ? "(sem atividade nesta camada neste instante)" : text));
+  return el;
+}
+
+function renderAllSteps(steps) {
+  stepsHttp.innerHTML = "";
+  stepsExpress.innerHTML = "";
+  stepsSql.innerHTML = "";
+  steps.forEach((s, i) => {
+    const n = i + 1;
+    stepsHttp.appendChild(makeStepEl(n, s.http, isEmptyText(s.http)));
+    stepsExpress.appendChild(makeStepEl(n, s.express, isEmptyText(s.express)));
+    stepsSql.appendChild(makeStepEl(n, s.sql, isEmptyText(s.sql)));
+  });
+}
+
+/** Estado inicial após reset — sem vazar dados do fluxo anterior */
+function renderIdleColumns(steps) {
+  const total = steps.length;
+  const names = {
+    http: "HTTP · Browser",
+    express: "Express · Controller / Middleware",
+    sql: "Postgres · SQL (simulado)",
+  };
+  const bodies = {
+    http: stepsHttp,
+    express: stepsExpress,
+    sql: stepsSql,
+  };
+  Object.keys(bodies).forEach((key) => {
+    const el = bodies[key];
+    el.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "col-idle";
+    p.innerHTML =
+      "<strong>" + names[key] + "</strong><br>" +
+      "Cenário com <strong>" + total + "</strong> passo(s).<br>" +
+      "Use <strong>Próximo →</strong> passo a passo ou <strong>Reproduzir passos</strong> para preencher esta coluna.";
+    el.appendChild(p);
+  });
+}
+
+function setRowState(index, state) {
+  const sel = `.step[data-i="${index}"]`;
+  [stepsHttp, stepsExpress, stepsSql].forEach(col => {
+    col.querySelectorAll(".step").forEach(el => {
+      el.classList.remove("pending", "current", "done");
+      const i = Number(el.dataset.i);
+      if (i < index) el.classList.add("done");
+      else if (i === index && state === "current") el.classList.add("current");
+      else if (i === index && state === "done") el.classList.add("done");
+      else el.classList.add("pending");
+    });
+  });
+}
+
+function markAllDone(count) {
+  for (let i = 0; i < count; i++) setRowState(i, "done");
+}
+
+function traceColBody(text) {
+  const body = document.createElement("div");
+  body.className = "trace-col-body" + (isEmptyText(text) ? " muted" : "");
+  body.textContent = isEmptyText(text)
+    ? "(sem atividade nesta camada neste instante)"
+    : text;
+  return body;
+}
+
+function traceCol(label, text) {
+  const col = document.createElement("div");
+  col.className = "trace-col";
+  const lab = document.createElement("div");
+  lab.className = "trace-col-label";
+  lab.textContent = label;
+  col.appendChild(lab);
+  col.appendChild(traceColBody(text));
+  return col;
+}
+
+function renderTrace() {
+  traceTimeline.innerHTML = "";
+  if (!traceSteps.length) {
+    traceTimeline.classList.add("empty");
+    const p = document.createElement("p");
+    p.className = "trace-placeholder";
+    p.textContent = "Aguardando reprodução…";
+    traceTimeline.appendChild(p);
+    return;
+  }
+
+  traceTimeline.classList.remove("empty");
+  traceSteps.forEach((step, i) => {
+    const card = document.createElement("article");
+    card.className = "trace-card";
+    if (step.state === "done") card.classList.add("done");
+    else if (step.state === "current") card.classList.add("current");
+
+    const head = document.createElement("div");
+    head.className = "trace-card-header";
+    const badge = document.createElement("span");
+    badge.className = "trace-badge";
+    badge.textContent = String(i + 1);
+    const title = document.createElement("span");
+    title.className = "trace-card-title";
+    title.textContent = "Passo " + (i + 1) + " · " + step.title;
+    head.appendChild(badge);
+    head.appendChild(title);
+    if (step.ts) {
+      const ts = document.createElement("span");
+      ts.className = "trace-ts";
+      ts.textContent = step.ts;
+      head.appendChild(ts);
+    }
+    card.appendChild(head);
+
+    const cols = document.createElement("div");
+    cols.className = "trace-cols";
+    cols.appendChild(traceCol("HTTP · Browser", step.http));
+    cols.appendChild(traceCol("Express", step.express));
+    cols.appendChild(traceCol("Postgres", step.sql));
+    card.appendChild(cols);
+    traceTimeline.appendChild(card);
+  });
+
+  traceTimeline.scrollTop = traceTimeline.scrollHeight;
+}
+
+function stepToTraceEntry(stepData, state) {
+  return {
+    http: stepData.http || "",
+    express: stepData.express || "",
+    sql: stepData.sql || "",
+    title: stepData.title || stepData.log || "passo",
+    ts: state === "done"
+      ? new Date().toLocaleTimeString("pt-BR", { hour12: false })
+      : undefined,
+    state,
+  };
+}
+
+function rebuildTraceThroughIndex(steps, index) {
+  traceSteps = steps.slice(0, index + 1).map((s, i) =>
+    stepToTraceEntry(s, i < index ? "done" : "current")
+  );
+  renderTrace();
+}
+
+function updateControls(steps) {
+  const total = steps.length;
+  const hasSteps = total > 0;
+  btnPrev.disabled = playing || !hasSteps || manualIndex <= 0;
+  btnNext.disabled = playing || !hasSteps || manualIndex >= total - 1;
+  document.getElementById("btnPlay").disabled = playing;
+  if (!hasSteps || manualIndex < 0) {
+    stepIndicator.textContent = "passo — / " + total;
+  } else {
+    stepIndicator.textContent = "passo " + (manualIndex + 1) + " / " + total;
+  }
+}
+
+function applyStep(index, steps, options) {
+  const opts = options || {};
+  if (!steps.length) return;
+  const i = Math.max(0, Math.min(index, steps.length - 1));
+  manualIndex = i;
+  const s = steps[i];
+
+  for (let r = 0; r < steps.length; r++) {
+    if (r < i) setRowState(r, "done");
+    else if (r === i) setRowState(r, "current");
+    else setRowState(r, "pending");
+  }
+  setCols(s.active);
+  rebuildTraceThroughIndex(steps, i);
+
+  if (opts.logLine) {
+    log("— Passo " + (i + 1) + ": " + s.log, s.cls || "");
+  }
+  updateControls(steps);
+  document.getElementById("status").textContent = opts.statusText || "passo " + (i + 1);
+}
+
+function manualNext() {
+  if (playing) return;
+  const steps = getSteps();
+  if (!steps.length) return;
+  if (manualIndex < 0) {
+    logEl.innerHTML = "";
+    traceSteps = [];
+    renderTrace();
+    renderAllSteps(steps);
+    applyStep(0, steps, { logLine: true, statusText: "manual" });
+    return;
+  }
+  if (manualIndex < steps.length - 1) {
+    applyStep(manualIndex + 1, steps, { logLine: true, statusText: "manual" });
+  }
+}
+
+function manualPrev() {
+  if (playing || manualIndex <= 0) return;
+  const steps = getSteps();
+  applyStep(manualIndex - 1, steps, { logLine: true, statusText: "manual" });
+}
+
+function buildSqliSteps(vuln) {
+  const emailPayload = "' OR '1'='1";
+  if (vuln) {
+    return [
+      {
+        active: "http",
+        title: "POST /login com payload",
+        http: "POST /login HTTP/1.1\nContent-Type: application/x-www-form-urlencoded\n\nemail=" + emailPayload + "\nsenha=qualquer",
+        express: "authController.login(req, res)\nconst email = req.body.email\n// ⚠ concatena na query",
+        sql: "SELECT * FROM usuarios\nWHERE email = '" + emailPayload + "'\n\n-- string montada no JS (vulnerável)",
+        log: "POST /login (payload injetado)", cls: "err"
+      },
+      {
+        active: "sql",
+        title: "Bypass — múltiplas linhas",
+        http: "HTTP/1.1 200 OK\n(sem validar senha — bug)",
+        express: "bcrypt.compare ignorado\nprimeira row → sessão admin",
+        sql: "Retorna TODOS os usuários\n→ atacante loga como 1º admin",
+        log: "Bypass de senha (vulnerável)", cls: "err"
+      }
+    ];
+  }
+  return [
+    {
+      active: "http",
+      title: "POST /login — parametrizado",
+      http: "POST /login HTTP/1.1\nContent-Type: application/json\n\n{ \"email\": \"" + emailPayload + "\", \"senha\": \"x\" }",
+      express: "pool.query(\n  'SELECT ... WHERE email = $1',\n  [email]\n)",
+      sql: "SELECT id, senha_hash\nFROM usuarios\nWHERE email = $1\n-- $1 = \"' OR '1'='1\" (literal, não SQL)",
+      log: "POST /login ($1 parametrizado)", cls: "ok"
+    },
+    {
+      active: "sql",
+      title: "401 — credenciais inválidas",
+      http: "HTTP/1.1 401 Unauthorized\n\n{ \"erro\": \"Credenciais inválidas\" }",
+      express: "0 rows → compare false\nres.status(401).render('login')",
+      sql: "SELECT ... WHERE email = $1\n→ 0 linhas",
+      log: "401 — mensagem genérica", cls: "ok"
+    }
+  ];
+}
+
+const SCENARIOS = {
+  cadastro: [
+    {
+      active: "http",
+      title: "Cliente envia cadastro",
+      http: "POST /cadastro HTTP/1.1\nHost: localhost:3000\nContent-Type: application/json\n\n{\n  \"email\": \"ana@exemplo.com\",\n  \"senha\": \"••••••••\",\n  \"nome\": \"Ana\"\n}",
+      express: "Rota: router.post('/cadastro', authController.cadastrar)\n→ body parser já preencheu req.body",
+      sql: "(nenhuma query ainda)",
+      log: "POST /cadastro",
+    },
+    {
+      active: "express",
+      title: "Normalizar email e hash da senha",
+      http: "(request ainda em processamento no servidor)",
+      express: "authController.cadastrar\nconst email = req.body.email.trim().toLowerCase()\nconst senhaHash = await bcrypt.hash(req.body.senha, 12)\n// senha em texto puro NÃO vai para o banco",
+      sql: "(aguardando INSERT)",
+      log: "bcrypt.hash",
+    },
+    {
+      active: "sql",
+      title: "INSERT parametrizado",
+      http: "(aguardando resposta HTTP)",
+      express: "await pool.query(\n  `INSERT INTO usuarios (email, senha_hash, nome)\n   VALUES ($1, $2, $3)`,\n  [email, senhaHash, nome]\n)",
+      sql: "INSERT INTO usuarios (email, senha_hash, nome)\nVALUES ($1, $2, $3)\n\nParâmetros ligados:\n  $1 → 'ana@exemplo.com'\n  $2 → '$2b$12$…' (hash bcrypt)\n  $3 → 'Ana'",
+      log: "INSERT ($1,$2,$3)",
+    },
+    {
+      active: "http",
+      title: "Redirect para login",
+      http: "HTTP/1.1 302 Found\nLocation: /login\n\n(browser segue para tela de login)",
+      express: "res.redirect(302, '/login')",
+      sql: "Resultado: INSERT 0..1 · 1 row",
+      log: "302 → /login",
+      cls: "ok",
+    },
+  ],
+  "login-ok": [
+    {
+      active: "http",
+      title: "Cliente envia login",
+      http: "POST /login HTTP/1.1\nContent-Type: application/json\nCookie: (ainda sem connect.sid)\n\n{ \"email\": \"ana@exemplo.com\", \"senha\": \"••••••••\" }",
+      express: "router.post('/login', limitarLogin, authController.entrar)",
+      sql: "(nenhuma query até o controller rodar)",
+      log: "POST /login",
+    },
+    {
+      active: "sql",
+      title: "SELECT por email ($1)",
+      http: "(processando…)",
+      express: "const { rows } = await pool.query(\n  'SELECT id, senha_hash, nome FROM usuarios WHERE email = $1',\n  [email]\n)",
+      sql: "SELECT id, senha_hash, nome\nFROM usuarios\nWHERE email = $1\n\n$1 = 'ana@exemplo.com'\n→ 1 row",
+      log: "SELECT … $1",
+    },
+    {
+      active: "express",
+      title: "bcrypt.compare — sucesso",
+      http: "(ainda sem resposta ao browser)",
+      express: "const ok = await bcrypt.compare(senha, rows[0].senha_hash)\n// true → segue; false → 401 genérico",
+      sql: "(resultado do SELECT já em memória)",
+      log: "bcrypt.compare ok",
+      cls: "ok",
+    },
+    {
+      active: "express",
+      title: "Regenerar sessão (anti-fixation)",
+      http: "(sessão sendo gravada no store)",
+      express: "req.session.regenerate(err => {\n  req.session.usuario = {\n    id: rows[0].id,\n    nome: rows[0].nome\n  }\n  // sem senha_hash na sessão\n})",
+      sql: "connect-pg-simple grava doc em tabela session",
+      log: "session.regenerate",
+    },
+    {
+      active: "http",
+      title: "Set-Cookie + redirect",
+      http: "HTTP/1.1 302 Found\nSet-Cookie: connect.sid=s%3Aabc…; Path=/; HttpOnly; SameSite=Lax\nLocation: /painel",
+      express: "res.redirect('/painel')",
+      sql: "(sessão persistida)",
+      log: "Set-Cookie + 302",
+      cls: "ok",
+    },
+  ],
+  "login-fail": [
+    {
+      active: "http",
+      title: "Cliente tenta login",
+      http: "POST /login HTTP/1.1\n\n{ \"email\": \"x@y.com\", \"senha\": \"errada\" }",
+      express: "authController.entrar — mesma rota do login OK",
+      sql: "(query a seguir)",
+      log: "POST /login",
+    },
+    {
+      active: "sql",
+      title: "SELECT + compare falha",
+      http: "(processando…)",
+      express: "rows vazio OU bcrypt.compare → false\n// NÃO diga 'email não existe'",
+      sql: "SELECT id, senha_hash FROM usuarios\nWHERE email = $1\n$1 = 'x@y.com'\n→ 0 rows OU hash não confere",
+      log: "SELECT → falha",
+    },
+    {
+      active: "http",
+      title: "401 genérico",
+      http: "HTTP/1.1 401 Unauthorized\n(re-render login)\n\nflash: 'Credenciais inválidas'",
+      express: "req.flash('erro', 'Credenciais inválidas')\nres.status(401).render('login')",
+      sql: "(nenhuma escrita)",
+      log: "401 genérico",
+      cls: "err",
+    },
+  ],
+  protegida: [
+    {
+      active: "http", title: "GET /painel anônimo",
+      http: "GET /painel HTTP/1.1\nCookie: (ausente)",
+      express: "—", sql: "—", log: "GET /painel (anon)"
+    },
+    {
+      active: "express", title: "exigirLogin barra",
+      http: "—",
+      express: "function exigirLogin(req, res, next) {\n  if (!req.session.usuario?.id)\n    return res.redirect('/login?next=/painel')\n  next()\n}",
+      sql: "—", log: "exigirLogin barra"
+    },
+    {
+      active: "http", title: "302 para login",
+      http: "HTTP/1.1 302 Found\nLocation: /login?next=/painel",
+      express: "res.redirect('/login?next=/painel')",
+      sql: "—", log: "302 sem sessão", cls: "err"
+    },
+    {
+      active: "http", title: "GET /painel autenticado",
+      http: "GET /painel HTTP/1.1\nCookie: connect.sid=s%3A...",
+      express: "exigirLogin → next()",
+      sql: "—", log: "GET com cookie", cls: "ok"
+    },
+    {
+      active: "express", title: "200 painel",
+      http: "HTTP/1.1 200 OK\nContent-Type: text/html",
+      express: "painelController.index\nres.render('painel', { nome })",
+      sql: "—", log: "200 painel", cls: "ok"
+    }
+  ],
+  sqli: []
+};
+
+function getSteps() {
+  const key = scenarioEl.value;
+  if (key === "sqli") return buildSqliSteps(vulnCheck.checked);
+  return SCENARIOS[key];
+}
+
+async function play() {
+  if (playing) return;
+  const steps = getSteps();
+  if (!steps.length) return;
+
+  playing = true;
+  updateControls(steps);
+  document.getElementById("status").textContent = "executando…";
+  logEl.innerHTML = "";
+  traceSteps = [];
+  renderTrace();
+  renderAllSteps(steps);
+  manualIndex = -1;
+
+  for (let i = 0; i < steps.length; i++) {
+    applyStep(i, steps, { logLine: true });
+    await new Promise((r) => setTimeout(r, 900));
+    traceSteps[i].state = "done";
+    traceSteps[i].ts = new Date().toLocaleTimeString("pt-BR", { hour12: false });
+    setRowState(i, "done");
+    renderTrace();
+    updateControls(steps);
+  }
+
+  manualIndex = steps.length - 1;
+  markAllDone(steps.length);
+  document.getElementById("status").textContent = "concluído";
+  playing = false;
+  updateControls(steps);
+}
+
+function reset() {
+  playing = false;
+  manualIndex = -1;
+  logEl.innerHTML = "";
+  traceSteps = [];
+  const steps = getSteps();
+  renderIdleColumns(steps);
+  renderTrace();
+  ["colHttp", "colExpress", "colSql"].forEach((id) =>
+    document.getElementById(id).classList.remove("active")
+  );
+  document.getElementById("status").textContent = "pronto";
+  sqliToggle.hidden = scenarioEl.value !== "sqli";
+  updateControls(steps);
+}
+
+scenarioEl.addEventListener("change", reset);
+vulnCheck.addEventListener("change", () => {
+  if (!playing) reset();
+});
+
+document.getElementById("btnPlay").addEventListener("click", play);
+document.getElementById("btnReset").addEventListener("click", reset);
+btnPrev.addEventListener("click", manualPrev);
+btnNext.addEventListener("click", manualNext);
+
+document.addEventListener("keydown", (e) => {
+  if (playing) return;
+  if (e.key === "ArrowRight") {
+    e.preventDefault();
+    manualNext();
+  } else if (e.key === "ArrowLeft") {
+    e.preventDefault();
+    manualPrev();
+  }
+});
+
+reset();
+</script>
+</body>
+</html>

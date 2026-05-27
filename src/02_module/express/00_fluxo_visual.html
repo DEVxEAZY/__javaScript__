@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fluxo Express — mapa animado</title>
+<style>
+  /* ============================================================
+     paleta clara + minimalista
+     ============================================================ */
+  :root {
+    --bg:        #fafafa;
+    --surface:   #ffffff;
+
+    --ink:       #0a0a0a;
+    --ink-2:     #525252;
+    --ink-3:     #a3a3a3;
+
+    --border:    #e7e7e7;
+    --border-2:  #d4d4d4;
+    --line:      #e5e5e5;
+
+    --req:       #1d4ed8;   /* azul */
+    --res:       #6d28d9;   /* roxo */
+    --ok:        #047857;   /* verde */
+    --err:       #b91c1c;   /* vermelho */
+
+    --mono: ui-monospace, "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .wrap { max-width: 1480px; margin: 0 auto; padding: 36px 28px 60px; }
+
+  /* ============================================================
+     header
+     ============================================================ */
+  header { margin-bottom: 24px; }
+  h1 {
+    margin: 0;
+    font-size: clamp(20px, 2.4vw, 26px);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+  }
+  h1 .small {
+    display: block;
+    font-size: 0.7em;
+    color: var(--ink-3);
+    margin-top: 6px;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  /* ============================================================
+     painel
+     ============================================================ */
+  .console {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .console .group { display: flex; align-items: center; gap: 8px; }
+  .console label {
+    font-size: 11px; color: var(--ink-3);
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+  }
+  .btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+  .btn:hover { background: #f4f4f4; border-color: var(--border-2); }
+  .btn.primary {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #ffffff;
+  }
+  .btn.primary:hover { background: #262626; }
+  .scenario {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 7px;
+  }
+  .speed {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+  }
+  .speed button {
+    background: var(--surface);
+    border: none;
+    border-right: 1px solid var(--border);
+    color: var(--ink-2);
+    font-family: var(--mono); font-size: 11px;
+    padding: 6px 11px;
+    cursor: pointer;
+  }
+  .speed button:last-child { border-right: none; }
+  .speed button.on { background: var(--ink); color: #ffffff; }
+  .status {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--ink-2);
+  }
+  .status .dot {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--ink-2);
+    margin-right: 6px; vertical-align: 1px;
+  }
+  .status.ok .dot { background: var(--ok); }
+  .status.ko .dot { background: var(--err); }
+
+  /* ============================================================
+     mapa
+     ============================================================ */
+  .map {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1500 / 880;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .map svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* paths — inativas quase invisíveis, só o caminho ativo aparece */
+  .lines .edge {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1;
+    opacity: 0.22;
+    transition: stroke 0.3s ease, stroke-width 0.25s ease, opacity 0.25s;
+  }
+  .lines .edge.lit { opacity: 1; }
+  .lines .edge.req.lit { stroke: var(--req); stroke-width: 1.6; }
+  .lines .edge.res.lit { stroke: var(--res); stroke-width: 1.6; }
+  .lines .edge.err.lit { stroke: var(--err); stroke-width: 1.6; }
+  .lines .edge.db.lit  { stroke: var(--ok);  stroke-width: 1.6; }
+
+  /* frames (containers semânticos) */
+  .lines .frame {
+    fill: transparent;
+    stroke: var(--border);
+    stroke-width: 1;
+    rx: 12; ry: 12;
+  }
+  .lines .frame-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    fill: var(--ink-3);
+    text-transform: uppercase;
+  }
+
+  /* partículas */
+  .lines .particle { r: 4.5; fill: var(--req); }
+  .lines .particle.res { fill: var(--res); }
+  .lines .particle.err { fill: var(--err); }
+  .lines .particle.db  { fill: var(--ok); }
+
+  /* ============================================================
+     nós
+     ============================================================ */
+  .nodes { position: absolute; inset: 0; pointer-events: none; }
+  .node {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 14px;
+    min-width: 112px;
+    text-align: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    pointer-events: auto;
+  }
+  .node .label {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+  }
+  .node .sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    margin-top: 2px;
+    white-space: nowrap;
+  }
+  .node.mw { min-width: 140px; }
+  .node.err { min-width: 200px; }
+
+  /* estado ativo: borda colorida sutil + sombra leve */
+  .node.active {
+    border-color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+  }
+  .node.active.req-style { border-color: var(--req); }
+  .node.active.res-style { border-color: var(--res); }
+  .node.active.err-style { border-color: var(--err); }
+  .node.active.db-style  { border-color: var(--ok);  }
+
+  .node.skipped { opacity: 0.42; }
+  .node.done { border-color: var(--border-2); }
+
+  /* ============================================================
+     painéis (código + log)
+     ============================================================ */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    min-height: 320px;
+  }
+  .panel .head {
+    display: flex; align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel .head .title {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.05em;
+  }
+  .panel .head .pill {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 10px;
+    padding: 2px 8px; border-radius: 4px;
+    background: #f5f5f5; color: var(--ink-2);
+    border: 1px solid var(--border);
+  }
+
+  .log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--ink-2);
+    line-height: 1.7;
+  }
+  .log .line {
+    display: flex; gap: 10px;
+    opacity: 0; transform: translateY(2px);
+    transition: opacity 0.18s, transform 0.18s;
+  }
+  .log .line.in { opacity: 1; transform: none; }
+  .log .line .t { color: var(--ink-3); font-size: 10px; padding-top: 2px; min-width: 70px; }
+  .log .line .m { color: var(--ink); flex: 1; }
+  .log .line.req .m { color: var(--req); }
+  .log .line.res .m { color: var(--res); }
+  .log .line.ok  .m { color: var(--ok);  }
+  .log .line.err .m { color: var(--err); }
+  .log .line.dim .m { color: var(--ink-2); }
+  .log::-webkit-scrollbar { width: 6px; }
+  .log::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+
+  pre.code {
+    margin: 0; padding: 14px 18px;
+    font-family: var(--mono); font-size: 12px;
+    line-height: 1.7;
+    color: var(--ink);
+    overflow-x: auto;
+    background: transparent;
+    flex: 1;
+  }
+  /* syntax highlighting tipo github light */
+  .code .kw  { color: #cf222e; }
+  .code .fn  { color: #8250df; }
+  .code .str { color: #0a3069; }
+  .code .com { color: var(--ink-3); font-style: italic; }
+  .code .num { color: #0550ae; }
+
+  /* legenda */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 18px;
+    margin-top: 16px;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-3);
+  }
+  .legend .key { display: inline-flex; align-items: center; gap: 8px; }
+  .legend .sw  { display: inline-block; width: 18px; height: 2px; border-radius: 1px; }
+  .legend .sw.req { background: var(--req); }
+  .legend .sw.res { background: var(--res); }
+  .legend .sw.err { background: var(--err); }
+  .legend .sw.db  { background: var(--ok);  }
+
+  footer {
+    margin-top: 24px;
+    text-align: center;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+  }
+
+  @media (max-width: 1100px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .node .label { font-size: 11px; }
+    .node .sub { font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <h1>
+      Fluxo Express
+      <span class="small">anatomia de uma requisição HTTP — do navegador ao MongoDB e de volta</span>
+    </h1>
+  </header>
+
+  <div class="console">
+    <div class="group">
+      <button class="btn primary" id="btnPlay">disparar</button>
+      <button class="btn" id="btnReset">reset</button>
+    </div>
+    <div class="group">
+      <label>cenário</label>
+      <select class="scenario" id="scenario">
+        <option value="get-home">GET /             · servidor básico</option>
+        <option value="post-form">POST /produtos    · form completo (sessão + csrf + db)</option>
+        <option value="get-protected">GET /admin        · middleware barra</option>
+        <option value="get-static">GET /style.css    · arquivo estático</option>
+        <option value="get-error">GET /erro         · cai no error handler</option>
+      </select>
+    </div>
+    <div class="group">
+      <label>velocidade</label>
+      <div class="speed" id="speed">
+        <button data-s="0.5">0.5×</button>
+        <button data-s="1" class="on">1×</button>
+        <button data-s="1.8">1.8×</button>
+      </div>
+    </div>
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">pronto</span></div>
+  </div>
+
+  <!-- ───────── MAPA ───────── -->
+  <div class="map" id="map">
+    <svg class="lines" id="svg" viewBox="0 0 1500 880" preserveAspectRatio="xMidYMid meet">
+
+      <!-- frame único da app Express -->
+      <rect class="frame" x="445" y="80" width="820" height="780" />
+      <text class="frame-label" x="473" y="108">express · app · :3000</text>
+
+      <!-- camadas dinâmicas -->
+      <g id="edges"></g>
+      <g id="particles"></g>
+    </svg>
+
+    <div class="nodes" id="nodes"></div>
+  </div>
+
+  <div class="legend">
+    <span class="key"><span class="sw req"></span> request</span>
+    <span class="key"><span class="sw res"></span> response</span>
+    <span class="key"><span class="sw err"></span> error</span>
+    <span class="key"><span class="sw db"></span>  i/o</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <div class="head">
+        <span class="title">// equivalente em código — ordem dos use() importa</span>
+        <span class="pill" id="codeTag">server.js</span>
+      </div>
+<pre class="code"><span class="kw">const</span> express = <span class="fn">require</span>(<span class="str">"express"</span>);
+<span class="kw">const</span> session = <span class="fn">require</span>(<span class="str">"express-session"</span>);
+<span class="kw">const</span> MongoStore = <span class="fn">require</span>(<span class="str">"connect-mongo"</span>);
+<span class="kw">const</span> helmet  = <span class="fn">require</span>(<span class="str">"helmet"</span>);
+<span class="kw">const</span> flash   = <span class="fn">require</span>(<span class="str">"connect-flash"</span>);
+<span class="kw">const</span> csrf    = <span class="fn">require</span>(<span class="str">"csurf"</span>);
+
+<span class="kw">const</span> app = <span class="fn">express</span>();
+
+<span class="com">// (01 → 07) middlewares na ordem em que rodam</span>
+app.<span class="fn">use</span>(<span class="fn">helmet</span>());
+app.<span class="fn">use</span>(express.<span class="fn">static</span>(<span class="str">"public"</span>));
+app.<span class="fn">use</span>(express.<span class="fn">urlencoded</span>({ extended: <span class="kw">true</span> }));
+app.<span class="fn">use</span>(express.<span class="fn">json</span>());
+app.<span class="fn">use</span>(<span class="fn">session</span>({ store: MongoStore.<span class="fn">create</span>({ mongoUrl }), secret, resave: <span class="kw">false</span> }));
+app.<span class="fn">use</span>(<span class="fn">flash</span>());
+app.<span class="fn">use</span>(<span class="fn">csrf</span>());
+app.<span class="fn">use</span>(meusMiddlewaresCustom);
+
+<span class="com">// (08 → 11) rotas → controllers → models → views</span>
+app.<span class="fn">set</span>(<span class="str">"view engine"</span>, <span class="str">"ejs"</span>);
+app.<span class="fn">use</span>(<span class="str">"/produtos"</span>, produtoRouter);
+
+<span class="com">// (!!) error handler com 4 args, por último</span>
+app.<span class="fn">use</span>((err, req, res, next) =&gt; res.<span class="fn">status</span>(<span class="num">500</span>).<span class="fn">render</span>(<span class="str">"erro"</span>, { err }));
+
+app.<span class="fn">listen</span>(<span class="num">3000</span>);</pre>
+    </div>
+
+    <div class="panel">
+      <div class="head">
+        <span class="title">request log</span>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <footer>
+    src/02_module/express  ·  01_servidor_basico → 08_mongodb_session_seguranca
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   1. NÓS — coordenadas no canvas SVG (1500 × 880)
+   ============================================================ */
+const NODES = {
+  /* cliente — alinhado verticalmente com o meio da chain */
+  browser:    { x: 100,  y: 420, type: 'client', label: 'Browser',          sub: 'fetch · curl · form' },
+  tcp:        { x: 270,  y: 420, type: 'core',   label: 'TCP :3000',        sub: 'app.listen' },
+
+  /* coluna de middlewares — entrada no topo, saída no rodapé */
+  helmet:     { x: 545,  y: 150, type: 'mw',     label: 'helmet()',         sub: 'security headers' },
+  static:     { x: 545,  y: 240, type: 'mw',     label: 'express.static',   sub: 'public/' },
+  parser:     { x: 545,  y: 330, type: 'mw',     label: 'urlencoded · json',sub: 'req.body' },
+  session:    { x: 545,  y: 420, type: 'mw',     label: 'express-session',  sub: 'req.session' },
+  flash:      { x: 545,  y: 510, type: 'mw',     label: 'connect-flash',    sub: 'req.flash()' },
+  csurf:      { x: 545,  y: 600, type: 'mw',     label: 'csurf',            sub: 'token check' },
+  custom:     { x: 545,  y: 690, type: 'mw',     label: 'middlewares custom', sub: 'auth · log · locals' },
+
+  /* linha horizontal no rodapé: router → controller → send */
+  router:     { x: 770,  y: 690, type: 'route',  label: 'Router',           sub: 'method + path' },
+  controller: { x: 970,  y: 690, type: 'ctrl',   label: 'Controller',       sub: 'orquestra' },
+  send:       { x: 1200, y: 690, type: 'send',   label: 'res.send',         sub: 'status + body' },
+
+  /* branches do controller: model acima, view abaixo */
+  model:      { x: 970,  y: 460, type: 'model',  label: 'Mongoose Model',   sub: 'find · save' },
+  view:       { x: 970,  y: 820, type: 'view',   label: 'View · EJS',       sub: 'res.render' },
+
+  /* error handler — separado, no rodapé */
+  errhandler: { x: 770,  y: 820, type: 'err',    label: 'error handler',    sub: '(err, req, res, next)' },
+
+  /* stores externos — bem afastados, fora do frame */
+  fs:         { x: 1380, y: 240, type: 'store',  label: 'public/',          sub: 'filesystem' },
+  mongo:      { x: 1380, y: 110, type: 'store',  label: 'MongoDB',          sub: 'atlas · :27017' }
+};
+
+/* ============================================================
+   2. ARESTAS
+   ============================================================ */
+const EDGES = {
+  /* request entrando */
+  'browser-tcp':          { from: 'browser',    to: 'tcp',         kind: 'req' },
+  'tcp-helmet':           { from: 'tcp',        to: 'helmet',      kind: 'req', curve:  0.25 },
+  'helmet-static':        { from: 'helmet',     to: 'static',      kind: 'req' },
+  'static-parser':        { from: 'static',     to: 'parser',      kind: 'req' },
+  'parser-session':       { from: 'parser',     to: 'session',     kind: 'req' },
+  'session-flash':        { from: 'session',    to: 'flash',       kind: 'req' },
+  'flash-csurf':          { from: 'flash',      to: 'csurf',       kind: 'req' },
+  'csurf-custom':         { from: 'csurf',      to: 'custom',      kind: 'req' },
+  'custom-router':        { from: 'custom',     to: 'router',      kind: 'req' },
+
+  /* dentro da app — linha horizontal limpa */
+  'router-controller':    { from: 'router',     to: 'controller',  kind: 'req' },
+  'controller-model':     { from: 'controller', to: 'model',       kind: 'req' },
+  'model-controller':     { from: 'model',      to: 'controller',  kind: 'res', curve: 0.2 },
+  'controller-view':      { from: 'controller', to: 'view',        kind: 'res' },
+  'view-send':            { from: 'view',       to: 'send',        kind: 'res', curve: 0.2 },
+  'controller-send':      { from: 'controller', to: 'send',        kind: 'res' },
+
+  /* response saindo — arco moderado de volta ao browser */
+  'send-browser':         { from: 'send',       to: 'browser',     kind: 'res', curve: 0.35 },
+
+  /* arquivos estáticos — quase horizontal de static a fs */
+  'static-fs':            { from: 'static',     to: 'fs',          kind: 'db' },
+  'fs-static':            { from: 'fs',         to: 'static',      kind: 'res', curve: 0.15 },
+  'static-send':          { from: 'static',     to: 'send',        kind: 'res', curve: -0.25 },
+
+  /* sessão ↔ mongo */
+  'session-mongo':        { from: 'session',    to: 'mongo',       kind: 'db',  curve: -0.3 },
+  'mongo-session':        { from: 'mongo',      to: 'session',     kind: 'req', curve:  0.3 },
+
+  /* model ↔ mongo */
+  'model-mongo':          { from: 'model',      to: 'mongo',       kind: 'db' },
+  'mongo-model':          { from: 'mongo',      to: 'model',       kind: 'res', curve: 0.2 },
+
+  /* erro */
+  'controller-err':       { from: 'controller', to: 'errhandler',  kind: 'err', curve: 0.25 },
+  'custom-err':           { from: 'custom',     to: 'errhandler',  kind: 'err' },
+  'csurf-err':            { from: 'csurf',      to: 'errhandler',  kind: 'err', curve: -0.2 },
+  'err-send':             { from: 'errhandler', to: 'send',        kind: 'err', curve: -0.2 },
+
+  /* response curto: middleware barra direto */
+  'custom-send':          { from: 'custom',     to: 'send',        kind: 'res' }
+};
+
+/* ============================================================
+   3. CENÁRIOS
+   ============================================================ */
+const SCENARIOS = {
+  "get-home": {
+    title: 'GET / — servidor básico',
+    code:  '01_servidor_basico/server.js',
+    skip:  ['session','flash','csurf','model','view','errhandler','mongo','fs'],
+    seq: [
+      { edge:'browser-tcp',          log:'cliente → GET / HTTP/1.1' },
+      { edge:'tcp-helmet',           log:'kernel entrega ao processo node · helmet aplica headers' },
+      { edge:'helmet-static',        log:'static: nada bate em public/, segue' },
+      { edge:'static-parser',        log:'urlencoded/json: body vazio (GET), segue' },
+      { edge:'parser-session',       log:'(neste módulo simples não há session)' },
+      { edge:'session-flash',        log:'(neste módulo simples não há flash)' },
+      { edge:'flash-csurf',          log:'(sem csurf neste módulo)' },
+      { edge:'csurf-custom',         log:'logger custom: GET /' },
+      { edge:'custom-router',        log:'router: app.get("/", handler) casou' },
+      { edge:'router-controller',    log:'handler executa: res.send("<h1>Olá mundo</h1>")' },
+      { edge:'controller-send',      log:'response 200 · text/html · 142B', kind:'res' },
+      { edge:'send-browser',         log:'browser pinta o HTML', kind:'res', hold: 200 }
+    ]
+  },
+
+  "post-form": {
+    title: 'POST /produtos — form completo (sessão + csrf + db)',
+    code:  '08_mongodb_session_seguranca/...',
+    skip:  ['errhandler'],
+    seq: [
+      { edge:'browser-tcp',          log:'cliente → POST /produtos (form)' },
+      { edge:'tcp-helmet',           log:'helmet aplica security headers' },
+      { edge:'helmet-static',        log:'static: pulou (não é asset)' },
+      { edge:'static-parser',        log:'urlencoded → req.body = { nome:"Caneca", preco:19.9, _csrf:"..." }' },
+      { edge:'parser-session',       log:'session: lê cookie sid do header · pede ao Mongo' },
+      { edge:'session-mongo',        log:'connect-mongo: SELECT em sessions where _id=sid', kind:'db' },
+      { edge:'mongo-session',        log:'mongo devolve doc da sessão → req.session populado', kind:'req' },
+      { edge:'session-flash',        log:'flash pronto: req.flash() disponível' },
+      { edge:'flash-csurf',          log:'csurf valida _csrf do body × token da sessão · ✓' },
+      { edge:'csurf-custom',         log:'auth ok · res.locals.user injetado' },
+      { edge:'custom-router',        log:'router: produtoRouter.post("/")' },
+      { edge:'router-controller',    log:'ProdutoController.create(req, res)' },
+      { edge:'controller-model',     log:'await Produto.create(req.body)' },
+      { edge:'model-mongo',          log:'mongoose → INSERT INTO products', kind:'db' },
+      { edge:'mongo-model',          log:'mongo retorna doc com _id: 6f9a…', kind:'res', hold: 100 },
+      { edge:'model-controller',     log:'controller recebe o produto criado', kind:'res' },
+      { edge:'controller-view',      log:'req.flash("ok","Criado!") · res.redirect("/")' },
+      { edge:'view-send',            log:'response 302 · Location: /', kind:'res' },
+      { edge:'send-browser',         log:'browser segue redirect', kind:'res', hold: 200 }
+    ]
+  },
+
+  "get-protected": {
+    title: 'GET /admin — middleware barra',
+    code:  '07_middlewares/server.js',
+    skip:  ['static','parser','session','flash','csurf','router','controller','model','view','errhandler','mongo','fs'],
+    seq: [
+      { edge:'browser-tcp',          log:'cliente → GET /admin (sem ?token)' },
+      { edge:'tcp-helmet',           log:'helmet aplicado' },
+      { edge:'helmet-static',        log:'static: sem match' },
+      { edge:'static-parser',        log:'parser: GET sem body' },
+      { edge:'parser-session',       log:'(sem sessão neste módulo)' },
+      { edge:'session-flash',        log:'…' },
+      { edge:'flash-csurf',          log:'…' },
+      { edge:'csurf-custom',         log:'middleware auth: req.query.token != 42 · BARRA', kind:'err' },
+      { edge:'custom-send',          log:'res.status(401).send("acesso negado")', kind:'err' },
+      { edge:'send-browser',         log:'browser recebe 401 Unauthorized', kind:'err', hold: 200 }
+    ]
+  },
+
+  "get-static": {
+    title: 'GET /style.css — atalho do express.static',
+    code:  '05_arquivos_estaticos/server.js',
+    skip:  ['parser','session','flash','csurf','custom','router','controller','model','view','errhandler','mongo'],
+    seq: [
+      { edge:'browser-tcp',          log:'cliente → GET /style.css' },
+      { edge:'tcp-helmet',           log:'helmet aplicado' },
+      { edge:'helmet-static',        log:'express.static procura public/style.css…' },
+      { edge:'static-fs',            log:'…lê o arquivo do disco', kind:'db' },
+      { edge:'fs-static',            log:'arquivo encontrado', kind:'res' },
+      { edge:'static-send',          log:'stream do arquivo direto pro socket · 200 · text/css', kind:'res' },
+      { edge:'send-browser',         log:'browser aplica o CSS', kind:'res', hold: 200 }
+    ]
+  },
+
+  "get-error": {
+    title: 'GET /erro — explosão controlada',
+    code:  '07_middlewares/server.js',
+    skip:  ['static','parser','session','flash','csurf','model','view','mongo','fs'],
+    seq: [
+      { edge:'browser-tcp',          log:'cliente → GET /erro' },
+      { edge:'tcp-helmet',           log:'helmet aplicado' },
+      { edge:'helmet-static',        log:'static: sem match' },
+      { edge:'static-parser',        log:'parser: ok' },
+      { edge:'parser-session',       log:'(sem sessão)' },
+      { edge:'session-flash',        log:'…' },
+      { edge:'flash-csurf',          log:'…' },
+      { edge:'csurf-custom',         log:'logger: GET /erro' },
+      { edge:'custom-router',        log:'router casou GET /erro' },
+      { edge:'router-controller',    log:'controller: throw new Error("explodiu!")', kind:'err' },
+      { edge:'controller-err',       log:'4-arg middleware capturou o erro', kind:'err' },
+      { edge:'err-send',             log:'res.status(500).render("erro", { err })', kind:'err' },
+      { edge:'send-browser',         log:'browser recebe 500 Internal Server Error', kind:'err', hold: 200 }
+    ]
+  }
+};
+
+/* ============================================================
+   4. RENDER
+   ============================================================ */
+const SVG_NS = "http://www.w3.org/2000/svg";
+const W = 1500, H = 880;
+
+const elNodes      = document.getElementById('nodes');
+const elEdgesG     = document.getElementById('edges');
+const elParticlesG = document.getElementById('particles');
+const elLog        = document.getElementById('log');
+const elStatus     = document.getElementById('status');
+const elStatusText = document.getElementById('statusText');
+const elScenario   = document.getElementById('scenario');
+const elPlay       = document.getElementById('btnPlay');
+const elReset      = document.getElementById('btnReset');
+const elCodeTag    = document.getElementById('codeTag');
+
+let speed = 1;
+let running = false;
+let cancelToken = 0;
+
+document.querySelectorAll('#speed button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#speed button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    speed = parseFloat(b.dataset.s);
+  });
+});
+
+function drawNodes() {
+  elNodes.innerHTML = '';
+  for (const [id, n] of Object.entries(NODES)) {
+    const div = document.createElement('div');
+    div.className = `node ${n.type}`;
+    div.dataset.id = id;
+    div.style.left = (n.x / W * 100) + '%';
+    div.style.top  = (n.y / H * 100) + '%';
+    div.innerHTML = `
+      <div class="label">${n.label}</div>
+      <div class="sub">${n.sub || ''}</div>
+    `;
+    elNodes.appendChild(div);
+  }
+}
+
+function nodeIdFromXY(node) {
+  for (const [id, n] of Object.entries(NODES)) if (n === node) return id;
+  return null;
+}
+
+function edgePoint(node, towardX, towardY) {
+  const el = elNodes.querySelector(`[data-id="${nodeIdFromXY(node)}"]`);
+  let halfW = 70, halfH = 28;
+  if (el) {
+    const rect = el.getBoundingClientRect();
+    const map = document.getElementById('map').getBoundingClientRect();
+    const scale = map.width / W;
+    halfW = (rect.width  / 2) / scale;
+    halfH = (rect.height / 2) / scale;
+  }
+  const dx = towardX - node.x;
+  const dy = towardY - node.y;
+  if (dx === 0 && dy === 0) return { x: node.x, y: node.y };
+  const tx = halfW / Math.abs(dx || 1e-9);
+  const ty = halfH / Math.abs(dy || 1e-9);
+  const t = Math.min(tx, ty);
+  return { x: node.x + dx * t, y: node.y + dy * t };
+}
+
+function pathFor(edge) {
+  const a = NODES[edge.from], b = NODES[edge.to];
+  const p1 = edgePoint(a, b.x, b.y);
+  const p2 = edgePoint(b, a.x, a.y);
+  const dx = p2.x - p1.x, dy = p2.y - p1.y;
+  const dist = Math.hypot(dx, dy);
+  const curve = edge.curve || 0;
+  const nx = -dy / (dist || 1), ny = dx / (dist || 1);
+  const offset = curve * dist * 0.45;
+  const cx1 = p1.x + dx * 0.3 + nx * offset;
+  const cy1 = p1.y + dy * 0.3 + ny * offset;
+  const cx2 = p1.x + dx * 0.7 + nx * offset;
+  const cy2 = p1.y + dy * 0.7 + ny * offset;
+  return `M ${p1.x} ${p1.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${p2.x} ${p2.y}`;
+}
+
+function drawEdges() {
+  elEdgesG.innerHTML = '';
+  for (const [key, e] of Object.entries(EDGES)) {
+    const path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', pathFor(e));
+    path.setAttribute('class', `edge ${e.kind || 'req'}`);
+    path.dataset.id = key;
+    elEdgesG.appendChild(path);
+  }
+}
+
+function redraw() {
+  drawNodes();
+  requestAnimationFrame(() => drawEdges());
+}
+redraw();
+window.addEventListener('resize', redraw);
+
+/* ============================================================
+   5. ANIMAÇÃO
+   ============================================================ */
+function sleep(ms) { return new Promise(r => setTimeout(r, ms / speed)); }
+
+function clearMap() {
+  document.querySelectorAll('.node').forEach(n => n.classList.remove('active','done','skipped','req-style','res-style','err-style','db-style'));
+  document.querySelectorAll('.edge').forEach(e => {
+    e.classList.remove('lit','req','res','err','db');
+  });
+  for (const [k, e] of Object.entries(EDGES)) {
+    const el = elEdgesG.querySelector(`[data-id="${k}"]`);
+    if (el) el.classList.add(e.kind || 'req');
+  }
+  elParticlesG.innerHTML = '';
+  elLog.innerHTML = '';
+}
+
+function setStatus(text, kind='') {
+  elStatus.classList.remove('ok','ko');
+  if (kind) elStatus.classList.add(kind);
+  elStatusText.textContent = text;
+}
+
+function logLine(text, kind='dim') {
+  const t = new Date().toISOString().slice(11,23);
+  const div = document.createElement('div');
+  div.className = `line ${kind}`;
+  /* usa textContent — evita interpretar trechos como "<h1>" como HTML real */
+  const tSpan = document.createElement('span'); tSpan.className = 't'; tSpan.textContent = t;
+  const mSpan = document.createElement('span'); mSpan.className = 'm'; mSpan.textContent = text;
+  div.appendChild(tSpan); div.appendChild(mSpan);
+  elLog.appendChild(div);
+  requestAnimationFrame(() => div.classList.add('in'));
+  elLog.scrollTop = elLog.scrollHeight;
+}
+
+function styleClassForKind(kind) {
+  if (kind === 'res') return 'res-style';
+  if (kind === 'err') return 'err-style';
+  if (kind === 'db')  return 'db-style';
+  return 'req-style';
+}
+
+function activateNode(id, kind) {
+  const el = elNodes.querySelector(`[data-id="${id}"]`);
+  if (!el) return;
+  document.querySelectorAll('.node.active').forEach(n => {
+    n.classList.remove('active','req-style','res-style','err-style','db-style');
+    n.classList.add('done');
+  });
+  el.classList.add('active', styleClassForKind(kind));
+}
+
+function travel(edgeKey, opts={}) {
+  const e = EDGES[edgeKey];
+  if (!e) return Promise.resolve();
+  const pathEl = elEdgesG.querySelector(`[data-id="${edgeKey}"]`);
+  if (!pathEl) return Promise.resolve();
+
+  pathEl.classList.add('lit');
+
+  const kind = opts.kind || e.kind || 'req';
+  const p = document.createElementNS(SVG_NS, 'circle');
+  p.setAttribute('class', `particle ${kind}`);
+  p.setAttribute('r', 4.5);
+  elParticlesG.appendChild(p);
+
+  pathEl.classList.remove('req','res','err','db');
+  pathEl.classList.add(kind);
+
+  activateNode(e.from, kind);
+
+  return new Promise(resolve => {
+    const len = pathEl.getTotalLength();
+    const dur = (opts.duration || 720) / speed;
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - start) / dur);
+      const pt = pathEl.getPointAtLength(len * t);
+      p.setAttribute('cx', pt.x);
+      p.setAttribute('cy', pt.y);
+      if (t < 1) requestAnimationFrame(frame);
+      else {
+        activateNode(e.to, kind);
+        setTimeout(() => p.remove(), 220 / speed);
+        resolve();
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+/* ============================================================
+   6. RUNNER
+   ============================================================ */
+async function play() {
+  if (running) return;
+  running = true;
+  cancelToken++;
+  const token = cancelToken;
+
+  const key = elScenario.value;
+  const scn = SCENARIOS[key];
+  if (!scn) { running = false; return; }
+
+  clearMap();
+  setStatus(`rodando · ${scn.title}`);
+  elCodeTag.textContent = scn.code;
+  logLine(`▶ ${scn.title}`, 'dim');
+
+  (scn.skip || []).forEach(id => {
+    const el = elNodes.querySelector(`[data-id="${id}"]`);
+    if (el) el.classList.add('skipped');
+  });
+
+  activateNode('browser', 'req');
+  await sleep(280);
+
+  let isError = false;
+
+  for (const step of scn.seq) {
+    if (token !== cancelToken) { running = false; return; }
+
+    if (step.kind === 'err') isError = true;
+
+    if (step.log) {
+      const k = step.kind || (EDGES[step.edge]?.kind === 'res' ? 'res' : EDGES[step.edge]?.kind === 'db' ? 'ok' : 'req');
+      logLine(step.log, k);
+    }
+
+    await travel(step.edge, { kind: step.kind, duration: step.duration });
+    if (step.hold) await sleep(step.hold);
+  }
+
+  document.querySelectorAll('.node.active').forEach(n => {
+    n.classList.remove('active','req-style','res-style','err-style','db-style');
+    n.classList.add('done');
+  });
+  setStatus(isError ? 'finalizado · com erro' : 'finalizado · ok', isError ? 'ko' : 'ok');
+  logLine(isError ? '◼ ciclo encerrado com erro' : '◼ ciclo encerrado', isError ? 'err' : 'ok');
+
+  running = false;
+}
+
+elPlay.addEventListener('click', play);
+elReset.addEventListener('click', () => {
+  cancelToken++;
+  running = false;
+  clearMap();
+  setStatus('pronto');
+});
+elScenario.addEventListener('change', () => {
+  cancelToken++;
+  running = false;
+  clearMap();
+  setStatus('pronto · cenário trocado');
+});
+
+window.addEventListener('load', () => setTimeout(play, 450));
+</script>
+</body>
+</html>
