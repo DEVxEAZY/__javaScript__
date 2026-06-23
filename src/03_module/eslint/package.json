@@ -1,0 +1,27 @@
+{
+  "name": "estudo-eslint",
+  "version": "1.0.0",
+  "description": "Laboratório: ESLint + guia Airbnb + auto-fix no editor",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "keywords": [
+    "estudo",
+    "eslint",
+    "qualidade"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^9.39.4",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.32.0"
+  }
+}

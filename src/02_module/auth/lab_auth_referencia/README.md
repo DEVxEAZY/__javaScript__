@@ -2,7 +2,7 @@
 
 Código **executável** de referência para o módulo [`../`](../) (auth). Complementa os `.md` e HTML interativos com um servidor real: cadastro, login, logout e rota protegida.
 
-**Guia detalhado do código:** [AULA.md](AULA.md) (mapa conceito → arquivo). Visão ponta a ponta: [09_arquitetura_auth_profissional.md](../09_arquitetura_auth_profissional.md).
+**Guia detalhado do código:** [LAB_AUTH_REFERENCIA.md](LAB_AUTH_REFERENCIA.md) (mapa conceito → arquivo). Visão ponta a ponta: [09_arquitetura_auth_profissional.md](../09_arquitetura_auth_profissional.md).
 
 | Recurso | Onde estudar teoria |
 |---------|---------------------|

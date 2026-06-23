@@ -1,0 +1,4 @@
+tarefas.db
+tarefas.db-journal
+tarefas.db-wal
+tarefas.db-shm

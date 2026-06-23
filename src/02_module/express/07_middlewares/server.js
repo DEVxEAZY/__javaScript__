@@ -171,6 +171,7 @@ app.get("/", (req, res) => {
             <li><a href="/erro">/erro</a> (dispara o middleware de erro)</li>
             <li><a href="/coisa-que-nao-existe">/coisa-que-nao-existe</a> (404 customizado)</li>
         </ul>
+        <p>Com SQLite + fluxo visual: <a href="middleware_sqlite_fluxo.html">middleware_sqlite_fluxo.html</a> · <code>npm run start:sqlite</code></p>
     `);
 });
 

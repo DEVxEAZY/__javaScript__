@@ -21,7 +21,13 @@
  *     -H "Content-Type: application/json" \
  *     -d '{"nome":"Webcam","preco":199}'
  *
+ *   curl -s -X PUT http://localhost:3000/produtos/1 \
+ *     -H "Content-Type: application/json" \
+ *     -d '{"preco":320}'
  *
+ *   curl -s http://localhost:3000/usuarios/1/posts
+ *
+ * Fluxo visual (básico → elite): rotas_fluxo.html
  * ============================================================
  * O PROBLEMA: server.js gigante
  * ============================================================
@@ -116,6 +122,7 @@ app.use(express.urlencoded({ extended: true }));
 // ./routes/produtos.js automaticamente.
 const produtosRouter = require("./routes/produtos");
 const usuariosRouter = require("./routes/usuarios");
+const postsRouter = require("./routes/posts");
 
 
 // ────────────────────────────────────────────────────────────
@@ -132,6 +139,7 @@ const usuariosRouter = require("./routes/usuarios");
 // o prefixo — e so trocar aqui.
 app.use("/produtos", produtosRouter);
 app.use("/usuarios", usuariosRouter);
+app.use("/usuarios/:userId/posts", postsRouter);
 
 
 // Home — so um indice manual pra navegar
@@ -139,13 +147,15 @@ app.get("/", (req, res) => {
     res.send(`
         <h1>Router e Controllers</h1>
         <ul>
-            <li><a href="/produtos">/produtos</a> (lista)</li>
-            <li><a href="/produtos/1">/produtos/1</a> (detalhe)</li>
+            <li><a href="/produtos">/produtos</a> (lista · ?ordenar=preco)</li>
+            <li><a href="/produtos/novo">/produtos/novo</a> (rota fixa antes de /:id)</li>
+            <li><a href="/produtos/1">/produtos/1</a> (detalhe · router.param)</li>
             <li><a href="/usuarios">/usuarios</a> (lista)</li>
-            <li><a href="/usuarios/1">/usuarios/1</a> (detalhe)</li>
+            <li><a href="/usuarios/1/posts">/usuarios/1/posts</a> (router aninhado · mergeParams)</li>
         </ul>
-        <p>Veja <code>routes/</code> e <code>controllers/</code> pra entender
-        como cada pedaco esta separado.</p>
+        <p>POST /produtos · PUT/DELETE /produtos/:id — veja comentários no topo de <code>server.js</code>.</p>
+        <p><a href="rotas_fluxo.html">Abrir fluxo visual de rotas</a> (básico → elite)</p>
+        <p>Veja <code>routes/</code>, <code>controllers/</code> e <code>middlewares/</code>.</p>
     `);
 });
 

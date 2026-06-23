@@ -1,7 +1,7 @@
 # Desafios praticos — MongoDB, Sessao e Seguranca
 
 Tres exercicios de dificuldade crescente para fixar o que foi
-visto em [AULA.md](../AULA.md). Cada um vem com **objetivo**,
+visto em [MONGODB_SESSION_SEGURANCA.md](../MONGODB_SESSION_SEGURANCA.md). Cada um vem com **objetivo**,
 **roteiro tecnico**, **criterios de aceite** e **dicas**.
 
 A ideia e voce **modificar o projeto da pasta pai**, nao criar
@@ -21,7 +21,7 @@ estes desafios estendem, refatoram ou estressam ela.
 Antes de codar:
 
 1. Leia o desafio inteiro.
-2. Releia a secao correspondente em [AULA.md](../AULA.md).
+2. Releia a secao correspondente em [MONGODB_SESSION_SEGURANCA.md](../MONGODB_SESSION_SEGURANCA.md).
 3. **Antecipe onde vai mexer** — qual model, qual controller, qual
    middleware. Se nao consegue antecipar, releia.
 4. So entao abra o editor.

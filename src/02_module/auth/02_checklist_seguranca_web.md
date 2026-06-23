@@ -18,7 +18,7 @@ A implementação **não** está nesta pasta — está em [`express/08_mongodb_s
 | `<input name="_csrf" value="<%= csrfToken %>">` | [`views/produtos/novo.ejs`](../express/08_mongodb_session_seguranca/views/produtos/novo.ejs) |
 | Erro `EBADCSRFTOKEN` sem vazar stack | [`server.js` handler ~L244](../express/08_mongodb_session_seguranca/server.js) |
 
-- [ ] Li a seção 10–11 do [AULA.md do 08](../express/08_mongodb_session_seguranca/AULA.md)
+- [ ] Li a seção 10–11 do [MONGODB_SESSION_SEGURANCA.md do 08](../express/08_mongodb_session_seguranca/MONGODB_SESSION_SEGURANCA.md)
 - [ ] Entendi por que **não** expor stack trace ao usuário (transcrição: preferir 404 genérico a `Forbidden` + detalhes internos)
 - [ ] Testei enviar form **sem** `_csrf` e vi `EBADCSRFTOKEN` tratado
 
@@ -37,7 +37,7 @@ A implementação **não** está nesta pasta — está em [`express/08_mongodb_s
 ## Helmet / CSP / HSTS
 
 - [ ] `helmet()` habilitado em produção
-- [ ] CSP/HSTS ajustados em **dev** (podem quebrar CDN/HMR) — ver AULA §10 do 08 e [`__test__/03-rate-limit-e-csp.md`](../express/08_mongodb_session_seguranca/__test__/03-rate-limit-e-csp.md)
+- [ ] CSP/HSTS ajustados em **dev** (podem quebrar CDN/HMR) — ver MONGODB_SESSION_SEGURANCA §10 do 08 e [`__test__/03-rate-limit-e-csp.md`](../express/08_mongodb_session_seguranca/__test__/03-rate-limit-e-csp.md)
 
 ## XSS
 

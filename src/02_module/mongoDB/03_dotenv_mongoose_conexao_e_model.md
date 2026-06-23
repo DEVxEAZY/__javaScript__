@@ -6,7 +6,7 @@ Este texto segue transcrições de aulas; o laboratório completo do mesmo arco 
 
 Atlas / URI já preparados → [`01_servidor_atlas.md`](./01_servidor_atlas.md), [`02_projeto_atlas_do_zero.md`](./02_projeto_atlas_do_zero.md).
 
-**Laboratório mínimo com o mesmo tema** (conexão, `emit("pronto")`, model, `.env`): pasta **`mongoDB/lab_dotenv_mongoose/`** — lá estão `server.js`, `src/models/HomeModel.js`, rotas/controlador exemplo, **`npm run seed`** para um insert sem ficar repetindo salvando arquivo com nodemon e o guia **`lab_dotenv_mongoose/AULA.md`** com explicações passo a passo deste projeto.
+**Laboratório mínimo com o mesmo tema** (conexão, `emit("pronto")`, model, `.env`): pasta **`mongoDB/lab_dotenv_mongoose/`** — lá estão `server.js`, `src/models/HomeModel.js`, rotas/controlador exemplo, **`npm run seed`** para um insert sem ficar repetindo salvando arquivo com nodemon e o guia **`lab_dotenv_mongoose/DOTENV_MONGOOSE.md`** com explicações passo a passo deste projeto.
 
 ---
 
@@ -137,7 +137,7 @@ MeuModel.find({}).then((lista) => console.log(lista));
 
 Manipular **`Model.create`** direto no controller ensina fluência rápida, mas não é onde costuma ficar a regra de negócio. Padrões comuns: **camada repository / service**, ou método estático/instance no próprio schema, para validar fluxos antes de criar registros públicos pela rota HTTP.
 
-Para um CRUD completo e segurança de sessões no mesmo projeto de estudo, continue em **`express/08_mongodb_session_seguranca/AULA.md`** (mapa lista aulas 138–146).
+Para um CRUD completo e segurança de sessões no mesmo projeto de estudo, continue em **`express/08_mongodb_session_seguranca/MONGODB_SESSION_SEGURANCA.md`** (mapa lista aulas 138–146).
 
 ---
 

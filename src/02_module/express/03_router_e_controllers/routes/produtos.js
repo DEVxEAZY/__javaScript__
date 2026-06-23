@@ -3,39 +3,55 @@
  * routes/produtos.js — Router de "produtos"
  * ============================================================
  *
- * Este arquivo NAO conhece o prefixo "/produtos". Ele descreve
- * suas rotas como se fosse um app standalone:
+ * Evolução desta aula (do básico ao “elite”):
+ *   • GET /, POST /           → lista e cria
+ *   • GET /novo ANTES de /:id → ordem de rotas (fixo vs param)
+ *   • router.param("id")      → loadProduto antes dos handlers :id
+ *   • router.route("/:id")    → .get().put().delete() encadeados
+ *   • middleware por rota     → validarCriacao no POST
  *
- *      "/"     → lista
- *      "/:id"  → detalhe
- *
- * O server.js e quem monta esse router em "/produtos" via:
- *
- *      app.use("/produtos", produtosRouter);
- *
- * Esse "desacoplamento" e o que torna o router REUSAVEL: amanha
- * voce decide versionar a API e poe em "/v2/produtos" sem mexer
- * em uma linha aqui.
+ * Fluxo visual: rotas_fluxo.html
  * ============================================================
  */
 
 const express = require("express");
 const router = express.Router();
 
-// O controller cuida da LOGICA. O router so faz o ROTEAMENTO.
 const produtosController = require("../controllers/produtosController");
+const loadProduto = require("../middlewares/loadProduto");
 
 
-// GET  /produtos       → listar
+// Middleware só deste router — roda em TODA request que passa aqui
+router.use((req, res, next) => {
+    req.contextoProdutos = { dominio: "produtos" };
+    next();
+});
+
+
+function validarCriacao(req, res, next) {
+    const { nome, preco } = req.body;
+    if (!nome || preco == null) {
+        return res.status(400).json({ erro: "Campos obrigatórios: nome, preco" });
+    }
+    next();
+}
+
+
+// ── Rotas fixas ANTES de parametrizadas ──
 router.get("/", produtosController.listar);
+router.get("/novo", produtosController.formNovo);
 
-// GET  /produtos/:id   → detalhar
-router.get("/:id", produtosController.detalhar);
+router.post("/", validarCriacao, produtosController.criar);
 
-// POST /produtos       → criar
-router.post("/", produtosController.criar);
+// ── Param middleware: toda rota com :id passa por loadProduto ──
+router.param("id", loadProduto);
+
+// ── app.route equivalente no Router: vários verbos, mesmo path ──
+router
+    .route("/:id")
+    .get(produtosController.detalhar)
+    .put(produtosController.atualizar)
+    .delete(produtosController.remover);
 
 
-// "module.exports = router" e o que torna esse arquivo IMPORTAVEL.
-// Sem isso, server.js nao consegue puxar produtosRouter.
 module.exports = router;

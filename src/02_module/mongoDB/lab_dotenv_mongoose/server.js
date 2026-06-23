@@ -14,7 +14,7 @@
  * GET http://localhost:3000/
  * GET http://localhost:3000/documentos
  *
- * Documentação detalhada: AULA.md (nesta pasta).
+ * Documentação detalhada: DOTENV_MONGOOSE.md (nesta pasta).
  * aparecer warning em versoes antigas, vide documentacao dessa serie.
  */
 

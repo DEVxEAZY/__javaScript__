@@ -12,7 +12,7 @@ Trilha de estudo sobre **autenticação**, **autorização** e defesas comuns em
 
 ## Ordem de leitura sugerida
 
-1. [AULA.md](AULA.md) — índice e roteiro da transcrição (Helmet + CSRF → express/08)
+1. [AUTH.md](AUTH.md) — índice e roteiro da transcrição (Helmet + CSRF → express/08)
 2. **[09_arquitetura_auth_profissional.md](09_arquitetura_auth_profissional.md)** — visão ponta a ponta (fluxos, ameaças, stateful vs JWT vs BFF)
 3. [01_autenticacao_autorizacao.md](01_autenticacao_autorizacao.md)
 4. [02_checklist_seguranca_web.md](02_checklist_seguranca_web.md)

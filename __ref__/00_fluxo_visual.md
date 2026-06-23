@@ -1,292 +1,175 @@
-# Mapa de fluxo cenarizado
+# Fluxo visual HTML — padrões do repositório
 
-> Um modo de visualização para explicar sistemas com partes que se comunicam.
-> O `00_fluxo_visual.html` é a primeira instância concreta desse modo, aplicado
-> ao ciclo de vida de uma requisição em Express. Este documento descreve o
-> **método** por trás dele, para que ele possa ser reaplicado a outros temas
-> (lifecycle do React, pipeline de CI/CD, fluxo OAuth, request HTTP/2, etc).
+> Dois modos coexistem neste repo: **mapa cenarizado SVG** (`00_fluxo_visual.html`) e **fluxo multi-coluna com revelação progressiva** (canônico: `postgres_fluxo.html`). Este documento é a **especificação de padrões**; o workflow do agente e snippets estão na skill — Cursor: [`.cursor/skills/fluxo-visual-html/`](../.cursor/skills/fluxo-visual-html/), estudo no repo: [`fluxo-visual-html/`](./fluxo-visual-html/).
 
 ---
 
-## 1. A ideia em uma frase
+## 1. Escolher o modo
 
-> *Um diagrama estático de caixas e setas, que sabe se animar para contar
-> várias histórias diferentes sobre o mesmo mapa.*
+| Modo | Quando usar | Exemplo no repo |
+|------|-------------|-----------------|
+| **Multi-coluna + passos** | Camadas paralelas (HTTP / app / dados), texto técnico por passo, rastro cumulativo | [`postgres_fluxo.html`](../src/02_module/auth/postgres_fluxo.html) |
+| **Mapa SVG + partícula** | Um grafo fixo, vários caminhos por arestas, “o que foi pulado” no mapa | [`00_fluxo_visual.html`](./00_fluxo_visual.html) |
+| **Mapa linear de nós** | Poucos nós em sequência, trace cards, sem colunas de código | [`00_mapa_auth.html`](../src/02_module/auth/00_mapa_auth.html) |
 
-Você desenha o sistema **uma vez** — todas as peças, todas as ligações
-possíveis. Depois define um conjunto de **cenários** (uma compra com login,
-uma compra anônima, uma falha de validação…). Cada cenário é só uma sequência
-de arestas a percorrer. O leitor escolhe um cenário, aperta play, e vê uma
-partícula viajar pelo mapa enquanto o terminal narra o que está acontecendo.
+Para **auth** e fluxos tipo request/layer, prefira o padrão **multi-coluna** (`postgres_fluxo`). O mapa SVG continua válido para o ciclo de vida Express em `__ref__/`.
 
----
-
-## 2. Por que funciona como ferramenta de ensino
-
-1. **O mapa é estável, a história muda.**
-   O leitor reconhece os mesmos lugares (browser, middleware X, banco) em
-   todos os cenários. A energia mental que sobra vai para entender a
-   *diferença* entre os fluxos.
-
-2. **Mostra o que NÃO acontece.**
-   Em cada cenário, nós irrelevantes ficam acinzentados (`skipped`). Isso
-   responde uma pergunta que o aluno raramente verbaliza: *"essa peça também
-   é usada aqui?"*. Saber que algo é pulado vale tanto quanto saber que algo
-   é usado.
-
-3. **Ordem importa, e o tempo torna isso óbvio.**
-   Em um diagrama estático com setas, a ordem dos middlewares é informação
-   textual. Aqui ela vira informação **temporal**: você vê helmet acender
-   antes de session. Não dá para confundir.
-
-4. **Camadas de detalhe sob demanda.**
-   - Olhar passivo → segue a partícula no mapa.
-   - Quer mais detalhe → lê o terminal de log.
-   - Quer ver a forma canônica → lê o painel de código.
-
-   Três níveis de profundidade num único quadro, sem precisar abrir
-   referências externas.
+Regra de workspace ([`AGENTS.md`](../AGENTS.md)): passos concluídos permanecem visíveis após animar; o painel de rastro é **cumulativo** (não some).
 
 ---
 
-## 3. Anatomia — os ingredientes mínimos
+## 2. Fluxo multi-coluna (canônico)
 
-Todo mapa cenarizado é feito de **seis** peças. Se faltar uma, o método perde
-algo.
+### 2.1 Ideia em uma frase
 
-| # | Peça             | Papel                                                              |
-|---|------------------|--------------------------------------------------------------------|
-| 1 | **Nós**          | Entidades nomeadas (componentes, estados, papéis).                 |
-| 2 | **Arestas**      | Toda ligação que *pode* existir entre dois nós, mesmo que rara.    |
-| 3 | **Frames**       | Agrupam nós por fronteira semântica (ex.: o que é "dentro da app"). |
-| 4 | **Partícula**    | A unidade de informação trafegando — request, evento, mensagem.     |
-| 5 | **Cenários**     | Sequências ordenadas de arestas + falas para o terminal.            |
-| 6 | **Painéis**      | Código canônico ao lado, log narrando o que a partícula faz.        |
+> *Várias colunas mostram o mesmo instante do fluxo; só os passos já vividos aparecem; o rastro abaixo guarda cada instante para sempre.*
 
-Tudo o que parece "decoração" (cores, opacidades, sombras, ícones) serve só
-para reforçar essas seis peças. Se uma decoração não está reforçando uma
-delas, ela é ruído e deve sair.
+### 2.2 Máquina de estados por linha (`.step`)
 
----
+Cada célula de passo em cada coluna usa `data-i` (índice 0-based) e **uma** destas classes:
 
-## 4. Linguagem visual — as regras que mantemos
+| Classe | Significado | Visual |
+|--------|-------------|--------|
+| `future` | Ainda não alcançado | `display: none` — não vazar conteúdo futuro |
+| `current` | Passo ativo agora | Destaque (borda azul, fundo claro) |
+| `done` | Já percorrido | Visível, check no número, fundo verde suave |
 
-São poucas, e justamente por isso o diagrama lê limpo:
+Não use só `opacity` ou `pending` para “esconder” passos futuros: o usuário veria todo o roteiro no primeiro clique.
 
-### 4.1 Cores por *tipo de fluxo*, não por componente
+CSS mínimo (espelha o canônico):
 
-Cada partícula carrega um **kind**. O kind define a cor da partícula, da
-aresta acesa e da borda do nó ativo. Fluxos válidos:
+```css
+.step.future { display: none; }
+.step.current { opacity: 1; /* borda/fundo de destaque */ }
+.step.done { opacity: 0.92; /* borda ok, ✓ no .num */ }
+```
 
-- `req` — entrada / pedido / disparo (azul)
-- `res` — resposta / retorno / propagação para trás (roxo)
-- `err` — desvio para tratamento de erro (vermelho)
-- `db`  — chamada para um sistema externo (i/o, verde)
+### 2.3 `setAllRowStates(currentIndex, allDone)` — contrato central
 
-Os componentes em si **não têm cor própria**. Só ganham cor quando estão
-ativos, e a cor que ganham é a do kind da hora. Isso evita a explosão de
-"cor por componente" que vira semáforo.
-
-### 4.2 Opacidade conta a história
-
-- **Em repouso**: arestas em opacidade baixíssima (~0.22). O mapa está lá,
-  mas não compete pela atenção.
-- **No caminho ativo**: opacidade 1, traço mais grosso. O olhar segue
-  naturalmente.
-- **Pulado no cenário**: nó com opacidade ~0.4. Visível, mas claramente
-  "fora desta história".
-
-### 4.3 Linhas curvas, nunca em ângulo reto
-
-Bezier cúbica entre os centros dos nós, com um parâmetro `curve` (-1..+1)
-que dá personalidade à ligação. Linhas em ângulo reto sugerem hierarquia
-rígida que raramente existe; curvas suaves dão a sensação de "fluxo".
-
-### 4.4 Tipografia mínima
-
-- Sans-serif para rótulos (o que é).
-- Mono para valores e descrições técnicas (o que carrega).
-- Sem títulos em caixa-alta; sem letter-spacing exagerado.
-
-### 4.5 Tema claro, decoração contida
-
-- Fundo branco / quase-branco.
-- Bordas em cinza muito claro.
-- Nenhuma sombra colorida, glow, gradiente, halo pulsante.
-- Cor só aparece quando algo *significa*.
-
-A regra geral: **o ruído visual no estado de repouso deve ser próximo de
-zero**. O movimento e a cor são privilégios do estado ativo.
-
----
-
-## 5. A receita — aplicando a outro tema
-
-Suponha que você queira explicar o **lifecycle de hooks do React**, ou o
-**fluxo OAuth Authorization Code**, ou um **pipeline de CI/CD**. Os passos
-são sempre os mesmos:
-
-### Passo 1 · Listar os nós
-
-Escreva, em um papel, **toda entidade nomeada** que aparece em qualquer um
-dos cenários. Não filtre. Para o Express:
-
-> browser, tcp, helmet, static, urlencoded, session, flash, csurf,
-> custom-mw, router, controller, model, view, send, error-handler,
-> mongo, public/
-
-Cada nó vira uma chave em `NODES` com `{ x, y, type, label, sub }`.
-
-### Passo 2 · Listar as arestas possíveis
-
-Para cada par de nós que pode trocar informação, escreva uma aresta. Inclua
-**todas** mesmo que algumas só apareçam em um cenário raro. É melhor ter
-uma aresta sobrando do que precisar redesenhar o mapa para um cenário novo.
-
-Cada aresta vira uma chave em `EDGES` com `{ from, to, kind, curve? }`.
-
-### Passo 3 · Posicionar os nós
-
-Espacialmente, organize por **direção do fluxo principal**:
-
-- **Esquerda → direita** geralmente é o sentido do tempo.
-- **Cima ↔ baixo** é hierarquia / camadas / branches.
-- Sistemas externos vão **fora dos frames** (browser à esquerda, banco à
-  direita). Ficam visualmente "do outro lado da fronteira".
-- Caminhos raros (error handler, fallback) ficam em uma faixa **separada**,
-  não no meio do fluxo feliz.
-
-### Passo 4 · Escrever os cenários
-
-Um cenário é:
+Atualiza **todas** as colunas de uma vez, com a mesma regra de índice:
 
 ```js
-{
-  title: 'frase curta que vira o título do play',
-  code:  'arquivo/contexto canônico de referência',
-  skip:  ['ids', 'de', 'nós', 'que', 'não', 'aparecem'],
-  seq: [
-    { edge: 'a-b', log: 'frase narrando',           kind: 'req' },
-    { edge: 'b-c', log: 'próxima frase',                          },
-    { edge: 'c-d', log: 'agora começa a resposta',  kind: 'res' },
-    ...
-  ]
+function setAllRowStates(currentIndex, allDone) {
+  [colA, colB, colC].forEach(col => {
+    col.querySelectorAll(".step").forEach(el => {
+      el.classList.remove("pending", "current", "done", "future");
+      const i = Number(el.dataset.i);
+      if (i > currentIndex) el.classList.add("future");
+      else if (allDone || i < currentIndex) el.classList.add("done");
+      else el.classList.add("current");
+    });
+  });
 }
 ```
 
-Comece pelo **caminho feliz** (o cenário "tudo dá certo"). Depois adicione
-variantes: erro de validação, timeout, branch alternativo. Cada variante
-revela uma parte do mapa que o caminho feliz não cruzou.
+- **`allDone === false`** (navegação manual / passo atual): índice `currentIndex` fica `current`; anteriores `done`; posteriores `future`.
+- **`allDone === true`** (fim de animação ou `markAllDone`): todos até `currentIndex` ficam `done` (útil entre frames da reprodução automática).
 
-### Passo 5 · Escrever os logs
+**Anti-padrão:** loop `setRowState(i)` por linha que reaplica estado linha a linha e sobrescreve `future`/`done` de outras linhas. Uma função, três colunas, mesmo `currentIndex`.
 
-Os logs são onde a explicação textual mora. Boas práticas:
+### 2.4 Quando chamar `renderAllSteps` vs DOM incremental
 
-- Use o vocabulário que a comunidade usa de fato (`req.body`, não "o corpo
-  da requisição").
-- Conte o **porquê** quando ele não é óbvio: *"static: pulou (não é asset)"*
-  é melhor que só *"static: skip"*.
-- Marque marcos: *"`mongo retorna doc com _id: 6f9a…`"* deixa o leitor
-  acompanhar o estado do dado.
+| Momento | Ação |
+|---------|------|
+| **Reset / troca de cenário** | `renderIdleColumns(steps)` — placeholders, sem vazar passos do cenário anterior |
+| **Primeiro “Próximo” ou início do play** | `renderAllSteps(steps)` — cria todos os `.step` no DOM (ainda em `future` após `setAllRowStates`) |
+| **Cada passo (manual ou play)** | Só `setAllRowStates` + `applyStep` — **não** recriar o DOM inteiro |
+| **Rastro** | `rebuildTraceThroughIndex(steps, index)` ou marcar `traceSteps[i].state = "done"` + `renderTrace()` no play |
 
-### Passo 6 · Escolher os painéis laterais
+Fluxo manual típico (`manualNext`):
 
-Sempre dois:
+1. Se `manualIndex < 0`: limpar log/rastro → `renderAllSteps` → `applyStep(0)`.
+2. Senão: `applyStep(manualIndex + 1)` apenas.
 
-1. **Painel de código** — a forma canônica de escrever o que o cenário
-   está mostrando. É o "tradução do desenho para a linguagem real".
-2. **Painel de log** — o terminal narrando passo a passo.
+### 2.5 Painel de rastro cumulativo
 
-Se você sentir necessidade de um terceiro painel, provavelmente o cenário
-está fazendo coisas demais e precisa virar dois.
+- Array `traceSteps` com entradas `{ http, express, sql, title, state, ts? }`.
+- **`rebuildTraceThroughIndex(steps, index)`** — slice `0..index`, estados `done` / `current` coerentes com a coluna (boa para voltar com “Anterior”).
+- No **play automático**: após cada pausa, marcar entrada `done` + timestamp + `setAllRowStates(i, true)` + `renderTrace()` para o rastro refletir o fechamento do passo.
+- Cards: `.trace-card`, `.trace-card.current`, `.trace-card.done`; subcolunas `.trace-col` + `.trace-col-body.muted` para camadas vazias (`—`).
+- Placeholder quando vazio: classe `.empty` no container + texto “Aguardando reprodução…”.
 
-### Passo 7 · Iterar visualmente
+Opcional em outros HTML: `.trace-chain` com resumo “1. X → 2. Y” (`00_mapa_auth`, `supabase_arquitetura`).
 
-Rode os cenários. Olhe o que está congestionado, o que cruza, o que parece
-caótico. **Reposicionar é mais barato do que adicionar legenda**. Se você
-está adicionando texto explicativo para o desenho, geralmente é sinal de
-que o desenho ainda não está limpo.
+### 2.6 Outros blocos de UI
+
+- **Console:** play, anterior/próximo, reset, `<select>` de cenário, indicador `passo N / total`.
+- **Colunas ativas:** `setCols("http"|"express"|"sql")` — borda da coluna relevante ao passo.
+- **Log:** linhas append-only; classes `.ok` / `.err` quando fizer sentido.
+- **Cenários:** objeto `SCENARIOS` + `getSteps()`; passos dinâmicos (ex. SQLi) em função separada.
+
+### 2.7 Checklist CSS / DOM
+
+- [ ] `.step.future { display: none; }`
+- [ ] `.step` com `data-i` alinhado ao índice do array de cenário
+- [ ] `.step.empty` ou texto muted para camada sem atividade (`isEmptyText`)
+- [ ] `.col-idle` no reset (não deixar passos do cenário anterior)
+- [ ] `.trace-panel` com label explícito sobre rastro **persistente**
+- [ ] `.col.active` na coluna do `step.active`
+- [ ] Controles desabilitados durante `playing`
+
+### 2.8 Verificação manual (antes de dar por pronto)
+
+1. Abrir o HTML no browser; **reset** — colunas em idle, rastro vazio.
+2. **Um** clique em “Próximo” — só o passo 1 visível nas três colunas; passos 2+ ausentes (não só transparentes).
+3. Avançar até o fim — todos os passos ficam `done`; rastro lista N cards legíveis.
+4. **Reproduzir** — animação passo a passo; após concluir, rastro e colunas permanecem (não limpar ao terminar).
+5. **Anterior** (se existir) — índice e rastro recuam sem duplicar cards.
+6. Trocar cenário no `<select>` — sem texto do cenário anterior nas colunas.
+7. Atalhos ←/→ (se houver) respeitam `playing === false`.
 
 ---
 
-## 6. Quando NÃO usar este formato
+## 3. Mapa cenarizado SVG (`00_fluxo_visual.html`)
 
-Este modo brilha quando há **fluxo temporal** entre componentes. Ele é
-desperdício quando:
+Método original deste arquivo: grafo estável, cenários como sequência de arestas, partícula em `<path>`, nós `skipped` com opacidade reduzida.
 
-- O assunto é **estrutural** (ex.: árvore de tipos TypeScript) — uma figura
-  estática serve melhor.
-- Há **uma única história** sem variantes — vira uma linha do tempo, e
-  ferramentas como mermaid são mais baratas.
-- A audiência precisa **executar** o exemplo, não só entender — aí é
-  preferível um repl/sandbox real.
+Ingredientes: nós, arestas, frames, partícula, cenários (`seq` + `skip`), painéis código + log.
 
-Como heurística: se você consegue listar **três cenários distintos** que
-contam histórias diferentes pelo mesmo mapa, vale o investimento.
+Linguagem visual: cores por **kind** (`req`, `res`, `err`, `db`), opacidade baixa em repouso, Bezier nas arestas, tema claro.
 
----
-
-## 7. Estrutura técnica de referência
-
-A implementação concreta vive em um único arquivo HTML, sem build.
-Camadas:
+Estrutura técnica resumida:
 
 ```
 00_fluxo_visual.html
-├─ <style>          tema claro, paleta de 4 acentos, tipografia mínima
-├─ <header/console> título + cenário + velocidade + status
-├─ <svg>            paths das arestas (gerados em JS) + partículas (circle)
-├─ <div.nodes>      cards HTML absolutos sobre o SVG, em coordenadas %
-├─ <pre.code>       código canônico do cenário
-├─ <div.log>        terminal animado
-└─ <script>
-   ├─ NODES         { id: { x, y, type, label, sub } }
-   ├─ EDGES         { 'from-to': { from, to, kind, curve? } }
-   ├─ SCENARIOS     { id: { title, code, skip, seq:[…] } }
-   ├─ render        drawNodes / drawEdges / pathFor (cubic bezier)
-   └─ runner        play() percorre seq disparando travel(edge) em série
+├─ NODES, EDGES, SCENARIOS
+├─ render → drawNodes / drawEdges
+└─ play() → travel(edge) com getPointAtLength
 ```
 
-A função `travel(edgeKey)` é onde a mágica acontece: ela pega o
-`<path>` da aresta, mede `getTotalLength`, e move um `<circle>` de
-`t=0` a `t=1` ao longo do path com `getPointAtLength`. Sincronização
-acontece via `Promise` resolvida quando a partícula chega.
+Cinco cenários Express (GET `/`, POST produtos, admin, static, erro) — ver seção 8 do histórico no próprio HTML.
 
-Trocar a partícula em SVG por algo mais elaborado (vários pontos seguindo
-a aresta, partícula com *trail*, dois flows simultâneos) é só estender
-essa função.
+**Não misturar** com o padrão multi-coluna: no SVG todos os nós existem no DOM; o “pulado” é opacidade, não `display: none` por passo indexado.
 
 ---
 
-## 8. Exemplo de referência
+## 4. Relação com outros HTML em `auth/`
 
-[`00_fluxo_visual.html`](./00_fluxo_visual.html) implementa este método para
-o ciclo de vida de uma requisição HTTP em uma app Express, cobrindo os
-módulos `01_servidor_basico` até `08_mongodb_session_seguranca`.
+| Arquivo | Padrão | Nota |
+|---------|--------|------|
+| `postgres_fluxo.html` | Multi-coluna + `future`/`setAllRowStates` | **Referência canônica** para novos fluxos auth |
+| `00_mapa_auth.html` | Nós lineares + trace push | Sem revelação por coluna; ok para visão geral |
+| `supabase_arquitetura.html` | Layers + `flow-step` pending/current/done | Trace cumulativo; alinhar rastro ao refatorar |
 
-Cinco cenários disponíveis:
-
-1. **GET /** — servidor básico, fluxo mínimo.
-2. **POST /produtos** — pipeline completo (sessão + csrf + mongoose).
-3. **GET /admin** — middleware que barra a request antes do router.
-4. **GET /style.css** — atalho do `express.static`, sai pela esquerda.
-5. **GET /erro** — `throw` capturado pelo middleware de erro de 4 args.
-
-Cada um acende um sub-conjunto diferente do mesmo mapa.
+Helmet/CSRF: só referência no módulo auth — implementação completa em `express/08_mongodb_session_seguranca/` (ver `AGENTS.md`).
 
 ---
 
-## 9. Checklist para criar um novo
+## 5. Checklist rápido — novo fluxo HTML
 
-- [ ] Identifiquei os nós (sem agrupar prematuramente).
-- [ ] Listei todas as arestas possíveis, incluindo as raras.
-- [ ] Posicionei nós para que o caminho feliz seja "lido" da esquerda
-      para a direita / de cima para baixo.
-- [ ] Sistemas externos estão **fora** dos frames.
-- [ ] Caminhos de erro estão em uma faixa visualmente separada.
-- [ ] Tenho ao menos **três cenários** que contam histórias distintas.
-- [ ] Cada log diz mais que o nome da etapa — diz o **porquê** quando
-      não é óbvio.
-- [ ] Em repouso, o mapa quase não compete pela atenção.
-- [ ] Quando um cenário roda, fica claro **o que ele pula**.
-- [ ] O painel de código mostra a forma canônica do mesmo cenário.
+- [ ] Modo escolhido (multi-coluna vs SVG vs mapa linear).
+- [ ] Cenários com ≥2 histórias distintas quando possível.
+- [ ] Revelação progressiva (`future`) ou skip explícito no mapa.
+- [ ] Rastro cumulativo testado após play e após navegação manual.
+- [ ] Reset limpa estado (`manualIndex`, `traceSteps`, idle columns).
+- [ ] Link de volta para mapa/índice da aula (`← 00_mapa_auth.html` etc.).
+- [ ] Skill consultada: [fluxo-visual-html](./fluxo-visual-html/SKILL.md) (ou `@fluxo-visual-html` no Cursor).
+
+---
+
+## 6. Referências
+
+- Canônico multi-coluna: [`src/02_module/auth/postgres_fluxo.html`](../src/02_module/auth/postgres_fluxo.html)
+- Mapa SVG Express: [`__ref__/00_fluxo_visual.html`](./00_fluxo_visual.html)
+- Skill (estudo, no repo): [`__ref__/fluxo-visual-html/`](./fluxo-visual-html/) — [`SKILL.md`](./fluxo-visual-html/SKILL.md), [`reference.md`](./fluxo-visual-html/reference.md), [`README.md`](./fluxo-visual-html/README.md)
+- Skill (Cursor, canônica): [`.cursor/skills/fluxo-visual-html/`](../.cursor/skills/fluxo-visual-html/) — invocar com `@fluxo-visual-html`

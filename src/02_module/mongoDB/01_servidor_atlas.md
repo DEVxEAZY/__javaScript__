@@ -74,7 +74,7 @@ Salve esse link em um arquivo local seguro (**não** commite senha em repositór
 ## 6. O que *não* fazemos nesta aula
 
 - Não modelamos coleções nem escrevemos queries aqui — só garantimos que o servidor existe e aceita conexão.
-- Para **Mongo local com `mongod`**, Compass e erros típicos de conexão, o material já consolidado está em **`src/02_module/express/08_mongodb_session_seguranca/AULA.md`** (secção Atlas / Compass / ambiente local).
+- Para **Mongo local com `mongod`**, Compass e erros típicos de conexão, o material já consolidado está em **`src/02_module/express/08_mongodb_session_seguranca/MONGODB_SESSION_SEGURANCA.md`** (secção Atlas / Compass / ambiente local).
 
 ---
 

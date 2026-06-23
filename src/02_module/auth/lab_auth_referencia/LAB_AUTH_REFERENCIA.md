@@ -1,4 +1,4 @@
-# AULA — Lab Auth Referência (código ↔ conceitos)
+# Lab Auth Referência (código ↔ conceitos)
 
 Este laboratório é a **implementação executável** dos capítulos `03`–`04` e da seção de sessão Postgres em [09_arquitetura_auth_profissional.md](../09_arquitetura_auth_profissional.md). Não reimplementa Helmet/CSRF — isso fica em [`express/08_mongodb_session_seguranca/`](../../express/08_mongodb_session_seguranca/).
 

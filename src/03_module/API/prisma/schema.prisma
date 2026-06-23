@@ -1,0 +1,68 @@
+// Modelo equivalente à migração Sequelize "alunos" da aula de referência.
+// Prisma: schema + migrate substituem migrations/ + models/ do Sequelize.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum HobbyDificuldade {
+  FACIL
+  MEDIA
+  DIFICIL
+}
+
+model Aluno {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  sobrenome String
+  email     String   @unique
+  sexo      String // "M" ou "F"
+  idade     Int
+  peso      Float
+  altura    Float
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  hobbies   Hobby[]
+
+  @@map("alunos")
+}
+
+enum HobbyTipo {
+  ESPORTE
+  MUSICA
+  LEITURA
+  ARTE
+  TECNOLOGIA
+  JOGOS
+  VIAGEM
+  COZINHA
+  OUTRO
+}
+
+model Hobby {
+  id          Int            @id @default(autoincrement())
+  name        String
+  tipo        HobbyTipo
+  dificuldade HobbyDificuldade
+  descricao   String
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  alunoId     Int            @map("aluno_id")
+  aluno       Aluno          @relation(fields: [alunoId], references: [id])
+  @@map("hobbies")
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  senhaHash String   @map("senha_hash")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("usuarios")
+}

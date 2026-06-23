@@ -54,6 +54,7 @@
     background: var(--border); color: var(--ink-2); font-weight: 600;
   }
   .step.pending { opacity: 0.78; }
+  .step.future { display: none; }
   .step.current {
     opacity: 1; color: var(--ink); border-left-color: var(--req);
     background: #eff6ff; box-shadow: 0 1px 4px rgba(29,78,216,0.1);
@@ -274,22 +275,26 @@ function renderIdleColumns(steps) {
   });
 }
 
-function setRowState(index, state) {
-  const sel = `.step[data-i="${index}"]`;
+/** Revela passos 0..currentIndex; oculta futuros; marca concluídos vs atual */
+function setAllRowStates(currentIndex, allDone) {
   [stepsHttp, stepsExpress, stepsSql].forEach(col => {
     col.querySelectorAll(".step").forEach(el => {
-      el.classList.remove("pending", "current", "done");
+      el.classList.remove("pending", "current", "done", "future");
       const i = Number(el.dataset.i);
-      if (i < index) el.classList.add("done");
-      else if (i === index && state === "current") el.classList.add("current");
-      else if (i === index && state === "done") el.classList.add("done");
-      else el.classList.add("pending");
+      if (i > currentIndex) {
+        el.classList.add("future");
+      } else if (allDone || i < currentIndex) {
+        el.classList.add("done");
+      } else {
+        el.classList.add("current");
+      }
     });
   });
 }
 
 function markAllDone(count) {
-  for (let i = 0; i < count; i++) setRowState(i, "done");
+  if (count <= 0) return;
+  setAllRowStates(count - 1, true);
 }
 
 function traceColBody(text) {
@@ -400,11 +405,7 @@ function applyStep(index, steps, options) {
   manualIndex = i;
   const s = steps[i];
 
-  for (let r = 0; r < steps.length; r++) {
-    if (r < i) setRowState(r, "done");
-    else if (r === i) setRowState(r, "current");
-    else setRowState(r, "pending");
-  }
+  setAllRowStates(i, false);
   setCols(s.active);
   rebuildTraceThroughIndex(steps, i);
 
@@ -646,7 +647,7 @@ async function play() {
     await new Promise((r) => setTimeout(r, 900));
     traceSteps[i].state = "done";
     traceSteps[i].ts = new Date().toLocaleTimeString("pt-BR", { hour12: false });
-    setRowState(i, "done");
+    setAllRowStates(i, true);
     renderTrace();
     updateControls(steps);
   }

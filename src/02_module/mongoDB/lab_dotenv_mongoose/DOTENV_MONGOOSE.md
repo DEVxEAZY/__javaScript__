@@ -56,7 +56,7 @@ lab_dotenv_mongoose/
 ├── package.json      # dependências e scripts npm
 ├── server.js         # ponto de entrada: Express + conexão + listen
 ├── seed.js           # executável à parte — um INSERT de exemplo
-├── AULA.md           # esta documentação
+├── DOTENV_MONGOOSE.md  # esta documentação
 └── src/
     ├── models/
     │   └── HomeModel.js       # Schema + model "Home"
@@ -437,7 +437,7 @@ Rodar **`seed`** múltiplas vezes cria vários registros válidos repetidos — 
 | `[]` sempre em **`/documentos`** | Seeds nunca foram executados e ninguém **`create`** ainda pela app |
 | `Cannot find module 'dotenv'` (ou similar) | Rode **`npm install`** na pasta **`lab_dotenv_mongoose`** |
 
-Documentação maior sobre erros típicos: **`express/08_mongodb_session_seguranca/AULA.md`**.
+Documentação maior sobre erros típicos: **`express/08_mongodb_session_seguranca/MONGODB_SESSION_SEGURANCA.md`**.
 
 ---
 

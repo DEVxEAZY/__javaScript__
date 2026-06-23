@@ -42,7 +42,7 @@ Uma página — detalhes e checkboxes em [02_checklist_seguranca_web.md](02_chec
 4. `res.locals.csrfToken` → [`middlewares/injetarLocals.js`](../express/08_mongodb_session_seguranca/middlewares/injetarLocals.js)
 5. Form `_csrf` → [`views/produtos/novo.ejs`](../express/08_mongodb_session_seguranca/views/produtos/novo.ejs)
 6. `EBADCSRFTOKEN` → [`server.js` L244–248](../express/08_mongodb_session_seguranca/server.js)
-7. Teoria: [`express/08/AULA.md`](../express/08_mongodb_session_seguranca/AULA.md) §10–12
+7. Teoria: [`MONGODB_SESSION_SEGURANCA.md`](../express/08_mongodb_session_seguranca/MONGODB_SESSION_SEGURANCA.md) §10–12
 8. Desafios: [`express/08/__test__/`](../express/08_mongodb_session_seguranca/__test__/)
 
 ---
@@ -56,7 +56,7 @@ Uma página — detalhes e checkboxes em [02_checklist_seguranca_web.md](02_chec
 5. Rodar ou ler [`express/08`](../express/08_mongodb_session_seguranca/)
 6. [05_jwt_stateless_apis.md](05_jwt_stateless_apis.md)
 7. [06_postgres_usuarios_e_queries.md](06_postgres_usuarios_e_queries.md) + [postgres_fluxo.html](postgres_fluxo.html)
-8. **Código de referência:** [lab_auth_referencia/](lab_auth_referencia/) + [lab_auth_referencia/AULA.md](lab_auth_referencia/AULA.md) (opcional — exige Postgres)
+8. **Código de referência:** [lab_auth_referencia/](lab_auth_referencia/) + [lab_auth_referencia/LAB_AUTH_REFERENCIA.md](lab_auth_referencia/LAB_AUTH_REFERENCIA.md) (opcional — exige Postgres)
 9. [07_supabase_auth_postgres_rls.md](07_supabase_auth_postgres_rls.md) + [supabase_arquitetura.html](supabase_arquitetura.html)
 10. [08_comparativo_roll_your_own_vs_baas.md](08_comparativo_roll_your_own_vs_baas.md)
 11. [__test__/01-checklist-pos-implementacao.md](__test__/01-checklist-pos-implementacao.md)

@@ -114,6 +114,6 @@ Se isso funciona, o próximo passo com **Mongoose** e `MONGO_URI` no Express dei
 | Timeout ou “cannot resolve host” | IP liberado no Atlas; redes que bloqueiam `mongodb+srv` |
 | `Authentication failed` | usuário/senha na URI ou caracteres especiais sem encode |
 
-Lista mais longa de erros típicos (incluindo app Express): **`src/02_module/express/08_mongodb_session_seguranca/AULA.md`**.
+Lista mais longa de erros típicos (incluindo app Express): **`src/02_module/express/08_mongodb_session_seguranca/MONGODB_SESSION_SEGURANCA.md`**.
 
 Conexão no Node (`dotenv` + primeira string em variável): [`03_dotenv_mongoose_conexao_e_model.md`](./03_dotenv_mongoose_conexao_e_model.md).

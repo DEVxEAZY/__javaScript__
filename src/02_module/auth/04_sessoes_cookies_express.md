@@ -2,7 +2,7 @@
 
 Sessão = estado do usuário no **servidor** (ou em store externo), identificado por um **cookie** opaco no browser (`connect.sid`).
 
-A teoria longa (cookie, `httpOnly`, `sameSite`, `express-session`, `connect-mongo`, flash) está em [`express/08/AULA.md`](../express/08_mongodb_session_seguranca/AULA.md) §5–9. Este capítulo acrescenta só o que falta para **auth completo** sem repetir páginas inteiras.
+A teoria longa (cookie, `httpOnly`, `sameSite`, `express-session`, `connect-mongo`, flash) está em [`MONGODB_SESSION_SEGURANCA.md`](../express/08_mongodb_session_seguranca/MONGODB_SESSION_SEGURANCA.md) §5–9. Este capítulo acrescenta só o que falta para **auth completo** sem repetir páginas inteiras.
 
 ---
 
@@ -76,7 +76,7 @@ function logout(req, res) {
 
 ## Prática
 
-1. Leia `express/08/AULA.md` §5–6.
+1. Leia `express/08_mongodb_session_seguranca/MONGODB_SESSION_SEGURANCA.md` §5–6.
 2. Rode `npm start` no `08` e observe cookie no DevTools → Application → Cookies.
 3. (Opcional) Implemente login pelo roteiro [`express/08/__test__/02-login-com-sessao.md`](../express/08_mongodb_session_seguranca/__test__/02-login-com-sessao.md).
 

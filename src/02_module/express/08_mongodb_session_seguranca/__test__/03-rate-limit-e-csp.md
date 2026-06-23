@@ -176,7 +176,7 @@ seu `server.js` respondendo:
 4. Em que cenario voce trocaria `connect-mongo` por `connect-redis`?
 
 Nao precisa "acertar" — precisa ter uma opiniao informada. Se
-voce nao consegue formar uma, releia [AULA.md](../AULA.md) e
+voce nao consegue formar uma, releia [MONGODB_SESSION_SEGURANCA.md](../MONGODB_SESSION_SEGURANCA.md) e
 volte aqui.
 
 ---

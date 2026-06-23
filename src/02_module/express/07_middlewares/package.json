@@ -4,9 +4,11 @@
   "description": "Aula 137 - Middlewares no Express: o que sao, como criar, ordem e tratamento de erro.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "start:sqlite": "node server_sqlite.js"
   },
   "dependencies": {
+    "better-sqlite3": "^11.8.1",
     "express": "^4.19.2"
   }
 }

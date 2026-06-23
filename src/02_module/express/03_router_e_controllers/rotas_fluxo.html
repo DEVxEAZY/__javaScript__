@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rotas Express — fluxo visual</title>
+<style>
+  :root {
+    --bg: #fafafa; --surface: #fff; --ink: #0a0a0a; --ink-2: #525252; --ink-3: #a3a3a3;
+    --border: #e7e7e7; --req: #1d4ed8; --res: #6d28d9; --ok: #047857; --err: #b91c1c;
+    --mono: ui-monospace, Consolas, monospace;
+    --sans: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: var(--sans); color: var(--ink); }
+  .wrap { max-width: 1480px; margin: 0 auto; padding: 28px 24px 48px; }
+  h1 { margin: 0; font-size: 22px; font-weight: 600; }
+  h1 .small { display: block; font-size: 0.72em; color: var(--ink-3); font-weight: 400; margin-top: 4px; }
+  .console {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; margin: 16px 0;
+  }
+  .btn { border: 1px solid var(--border); background: var(--surface); padding: 6px 12px; border-radius: 7px; cursor: pointer; font-size: 12px; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  select { font-family: var(--mono); font-size: 11px; max-width: 420px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+  @media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } }
+  .col {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    min-height: 200px; display: flex; flex-direction: column;
+  }
+  .col .head {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.06em;
+  }
+  .col .body { padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .col.http.active { border-color: var(--req); box-shadow: 0 2px 8px rgba(29,78,216,0.08); }
+  .col.express.active { border-color: var(--res); box-shadow: 0 2px 8px rgba(109,40,217,0.08); }
+  .col.ctrl.active { border-color: var(--ok); box-shadow: 0 2px 8px rgba(4,120,87,0.08); }
+  .step {
+    font-family: var(--mono); font-size: 11px; line-height: 1.55; white-space: pre-wrap;
+    padding: 8px 10px 8px 36px; border-radius: 8px; border: 1px solid var(--border);
+    border-left-width: 3px; position: relative; background: #fafafa;
+    opacity: 0.88; color: var(--ink-2);
+  }
+  .step .num {
+    position: absolute; left: 10px; top: 8px; width: 18px; height: 18px;
+    border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center;
+    background: var(--border); color: var(--ink-2); font-weight: 600;
+  }
+  .step.future { display: none; }
+  .step.current { opacity: 1; color: var(--ink); border-left-color: var(--req); background: #eff6ff; }
+  .step.current .num { background: var(--req); color: #fff; }
+  .step.done { opacity: 0.92; color: var(--ink); border-left-color: var(--ok); background: #f0fdf4; }
+  .step.done .num { background: var(--ok); color: #fff; font-size: 0; }
+  .step.done .num::after { content: "✓"; font-size: 11px; line-height: 18px; }
+  .step.empty { opacity: 0.5; font-style: italic; }
+  .col-idle {
+    font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--ink-2);
+    padding: 16px 12px; border: 1px dashed var(--border); border-radius: 8px; background: #fafafa;
+  }
+  .levels {
+    margin: 12px 0; display: flex; flex-wrap: wrap; gap: 6px;
+    font-family: var(--mono); font-size: 10px;
+  }
+  .levels span {
+    padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--ink-2);
+  }
+  .levels span.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .trace-panel, .log-panel {
+    margin-top: 12px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .trace-panel .label, .log-panel .label {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.06em; margin-bottom: 8px;
+  }
+  .trace-timeline { display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
+  .trace-timeline.empty .trace-placeholder { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-style: italic; margin: 0; }
+  .trace-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: #fafafa; }
+  .trace-card.current { border-color: var(--req); background: #eff6ff; }
+  .trace-card.done { border-left: 3px solid var(--ok); background: #f0fdf4; }
+  .trace-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-family: var(--mono); font-size: 11px; }
+  .trace-badge {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;
+  }
+  .trace-card.current .trace-badge { background: var(--req); color: #fff; }
+  .trace-card.done .trace-badge { background: var(--ok); color: #fff; font-size: 0; }
+  .trace-card.done .trace-badge::after { content: "✓"; font-size: 11px; }
+  .trace-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  @media (max-width: 900px) { .trace-cols { grid-template-columns: 1fr; } }
+  .trace-col { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; background: var(--surface); }
+  .trace-col-label { font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-bottom: 4px; }
+  .trace-col-body { font-family: var(--mono); font-size: 10px; line-height: 1.5; white-space: pre-wrap; }
+  .trace-col-body.muted { color: var(--ink-3); font-style: italic; }
+  .log-panel { max-height: 180px; overflow-y: auto; font-family: var(--mono); font-size: 11px; }
+  .log-panel .line { padding: 2px 0; color: var(--ink-2); }
+  .log-panel .line.ok { color: var(--ok); }
+  .log-panel .line.err { color: var(--err); }
+  .back { font-family: var(--mono); font-size: 11px; margin-bottom: 12px; }
+  .back a { color: var(--req); }
+  footer { margin-top: 20px; text-align: center; font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="back">
+    <a href="server.js">server.js</a> ·
+    <a href="../00_fluxo_visual.html">mapa Express geral</a> ·
+    <a href="../07_middlewares/middleware_sqlite_fluxo.html">middleware + SQLite</a>
+  </p>
+  <h1>Rotas Express — do básico ao elite<span class="small">03_router_e_controllers · Express 4 · docs via Context7</span></h1>
+
+  <div class="levels" id="levels">
+    <span data-l="1">① handler inline</span>
+    <span data-l="2">② params · query</span>
+    <span data-l="3">③ Router + prefixo</span>
+    <span data-l="4">④ Controller</span>
+    <span data-l="5">⑤ cadeia MW</span>
+    <span data-l="6">⑥ ordem rotas</span>
+    <span data-l="7">⑦ route chain</span>
+    <span data-l="8">⑧ param loader</span>
+    <span data-l="9">⑨ nested mergeParams</span>
+  </div>
+
+  <div class="console">
+    <button class="btn primary" id="btnPlay">Reproduzir passos</button>
+    <button class="btn" id="btnPrev">← Anterior</button>
+    <button class="btn" id="btnNext">Próximo →</button>
+    <button class="btn" id="btnReset">reset</button>
+    <select id="scenario">
+      <optgroup label="Básico">
+        <option value="basico">GET / — handler inline (01_servidor_basico)</option>
+        <option value="query">GET /produtos?ordenar=preco — req.query</option>
+        <option value="params">GET /produtos/:id — req.params</option>
+      </optgroup>
+      <optgroup label="Organização">
+        <option value="router">app.use('/produtos', router) — prefixo</option>
+        <option value="controller">Router → Controller.listar</option>
+      </optgroup>
+      <optgroup label="Intermediário">
+        <option value="cadeia">POST /produtos — validarCriacao + criar</option>
+        <option value="ordem">GET /produtos/novo vs /:id — ordem importa</option>
+      </optgroup>
+      <optgroup label="Elite">
+        <option value="route-chain">router.route('/:id').get().put().delete()</option>
+        <option value="param">router.param('id') → loadProduto → req.produto</option>
+        <option value="nested">GET /usuarios/:userId/posts — mergeParams</option>
+      </optgroup>
+    </select>
+    <span id="stepIndicator" style="font-family:var(--mono);font-size:11px;color:var(--ink-2)">passo — / —</span>
+    <span id="status" style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-2)">pronto</span>
+  </div>
+
+  <div class="cols">
+    <div class="col http" id="colHttp">
+      <div class="head">HTTP · Cliente</div>
+      <div class="body" id="stepsHttp"></div>
+    </div>
+    <div class="col express" id="colExpress">
+      <div class="head">Express · Roteamento (match · prefix · MW)</div>
+      <div class="body" id="stepsExpress"></div>
+    </div>
+    <div class="col ctrl" id="colCtrl">
+      <div class="head">Controller / Handler · lógica</div>
+      <div class="body" id="stepsCtrl"></div>
+    </div>
+  </div>
+
+  <div class="trace-panel">
+    <div class="label">RASTRO CUMULATIVO — passos permanecem visíveis após animar</div>
+    <div class="trace-timeline empty" id="traceTimeline">
+      <p class="trace-placeholder">Aguardando reprodução…</p>
+    </div>
+  </div>
+
+  <div class="log-panel" id="log"></div>
+  <footer>03_router_e_controllers · rotas_fluxo.html · Express docs /expressjs/express 4.x</footer>
+</div>
+
+<script>
+const stepsHttp = document.getElementById("stepsHttp");
+const stepsExpress = document.getElementById("stepsExpress");
+const stepsCtrl = document.getElementById("stepsCtrl");
+const logEl = document.getElementById("log");
+const traceTimeline = document.getElementById("traceTimeline");
+const scenarioEl = document.getElementById("scenario");
+const btnPrev = document.getElementById("btnPrev");
+const btnNext = document.getElementById("btnNext");
+const levelsEl = document.getElementById("levels");
+
+let playing = false, manualIndex = -1, traceSteps = [];
+
+const SCENARIO_LEVEL = {
+  basico: 1, query: 2, params: 2, router: 3, controller: 4,
+  cadeia: 5, ordem: 6, "route-chain": 7, param: 8, nested: 9,
+};
+
+function log(msg, cls) {
+  const d = document.createElement("div");
+  d.className = "line" + (cls ? " " + cls : "");
+  d.textContent = msg;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setCols(active) {
+  ["colHttp", "colExpress", "colCtrl"].forEach(id => document.getElementById(id).classList.remove("active"));
+  if (active === "http") document.getElementById("colHttp").classList.add("active");
+  if (active === "express") document.getElementById("colExpress").classList.add("active");
+  if (active === "ctrl") document.getElementById("colCtrl").classList.add("active");
+}
+
+function isEmptyText(t) {
+  const s = (t || "").trim();
+  return !s || s === "—";
+}
+
+function makeStepEl(num, text, empty) {
+  const el = document.createElement("div");
+  el.className = "step pending" + (empty ? " empty" : "");
+  el.dataset.i = String(num - 1);
+  const numEl = document.createElement("span");
+  numEl.className = "num";
+  numEl.textContent = String(num);
+  el.appendChild(numEl);
+  el.appendChild(document.createTextNode(empty ? "(sem atividade nesta camada)" : text));
+  return el;
+}
+
+function renderAllSteps(steps) {
+  [stepsHttp, stepsExpress, stepsCtrl].forEach(el => { el.innerHTML = ""; });
+  steps.forEach((s, i) => {
+    const n = i + 1;
+    stepsHttp.appendChild(makeStepEl(n, s.http, isEmptyText(s.http)));
+    stepsExpress.appendChild(makeStepEl(n, s.express, isEmptyText(s.express)));
+    stepsCtrl.appendChild(makeStepEl(n, s.ctrl, isEmptyText(s.ctrl)));
+  });
+}
+
+function renderIdleColumns(steps) {
+  const names = ["HTTP · Cliente", "Express · Roteamento", "Controller / Handler"];
+  const bodies = [stepsHttp, stepsExpress, stepsCtrl];
+  bodies.forEach((el, i) => {
+    el.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "col-idle";
+    p.innerHTML = "<strong>" + names[i] + "</strong><br>" + steps.length + " passo(s). Use <strong>Próximo →</strong> ou <strong>Reproduzir</strong>.";
+    el.appendChild(p);
+  });
+}
+
+function setAllRowStates(currentIndex, allDone) {
+  [stepsHttp, stepsExpress, stepsCtrl].forEach(col => {
+    col.querySelectorAll(".step").forEach(el => {
+      el.classList.remove("pending", "current", "done", "future");
+      const i = Number(el.dataset.i);
+      if (i > currentIndex) el.classList.add("future");
+      else if (allDone || i < currentIndex) el.classList.add("done");
+      else el.classList.add("current");
+    });
+  });
+}
+
+function renderTrace() {
+  traceTimeline.innerHTML = "";
+  if (!traceSteps.length) {
+    traceTimeline.classList.add("empty");
+    const p = document.createElement("p");
+    p.className = "trace-placeholder";
+    p.textContent = "Aguardando reprodução…";
+    traceTimeline.appendChild(p);
+    return;
+  }
+  traceTimeline.classList.remove("empty");
+  traceSteps.forEach((step, i) => {
+    const card = document.createElement("article");
+    card.className = "trace-card" + (step.state === "done" ? " done" : step.state === "current" ? " current" : "");
+    const head = document.createElement("div");
+    head.className = "trace-card-header";
+    head.innerHTML = '<span class="trace-badge">' + (i + 1) + '</span><span>' + step.title + '</span>';
+    card.appendChild(head);
+    const cols = document.createElement("div");
+    cols.className = "trace-cols";
+    ["HTTP", "Express", "Controller"].forEach((lab, j) => {
+      const col = document.createElement("div");
+      col.className = "trace-col";
+      const key = ["http", "express", "ctrl"][j];
+      const txt = step[key] || "";
+      col.innerHTML = '<div class="trace-col-label">' + lab + '</div><div class="trace-col-body' + (isEmptyText(txt) ? " muted" : "") + '">' + (isEmptyText(txt) ? "—" : txt) + '</div>';
+      cols.appendChild(col);
+    });
+    card.appendChild(cols);
+    traceTimeline.appendChild(card);
+  });
+  traceTimeline.scrollTop = traceTimeline.scrollHeight;
+}
+
+function rebuildTraceThroughIndex(steps, index) {
+  traceSteps = steps.slice(0, index + 1).map((s, i) => ({
+    http: s.http || "", express: s.express || "", ctrl: s.ctrl || "",
+    title: "Passo " + (i + 1) + " · " + (s.title || s.log),
+    state: i < index ? "done" : "current",
+  }));
+  renderTrace();
+}
+
+function updateControls(steps) {
+  btnPrev.disabled = playing || manualIndex <= 0;
+  btnNext.disabled = playing || manualIndex >= steps.length - 1;
+  document.getElementById("btnPlay").disabled = playing;
+  stepIndicator.textContent = manualIndex < 0 ? "passo — / " + steps.length : "passo " + (manualIndex + 1) + " / " + steps.length;
+  const lvl = SCENARIO_LEVEL[scenarioEl.value] || 1;
+  levelsEl.querySelectorAll("span").forEach(s => s.classList.toggle("on", Number(s.dataset.l) === lvl));
+}
+
+function applyStep(index, steps, opts) {
+  const i = Math.max(0, Math.min(index, steps.length - 1));
+  manualIndex = i;
+  setAllRowStates(i, false);
+  setCols(steps[i].active);
+  rebuildTraceThroughIndex(steps, i);
+  if (opts && opts.logLine) log("— Passo " + (i + 1) + ": " + steps[i].log, steps[i].cls || "");
+  updateControls(steps);
+  document.getElementById("status").textContent = "passo " + (i + 1);
+}
+
+function manualNext() {
+  if (playing) return;
+  const steps = getSteps();
+  if (manualIndex < 0) {
+    logEl.innerHTML = ""; traceSteps = []; renderTrace(); renderAllSteps(steps);
+    applyStep(0, steps, { logLine: true }); return;
+  }
+  if (manualIndex < steps.length - 1) applyStep(manualIndex + 1, steps, { logLine: true });
+}
+
+function manualPrev() {
+  if (playing || manualIndex <= 0) return;
+  applyStep(manualIndex - 1, getSteps(), { logLine: true });
+}
+
+const SCENARIOS = {
+  basico: [
+    { active: "http", title: "Request", http: "GET / HTTP/1.1\nHost: localhost:3000", express: "Express recebe method + path\nProcura handler registrado", ctrl: "(handler inline no server.js)", log: "GET /" },
+    { active: "express", title: "Match", http: "—", express: "app.get('/', (req, res) => { ... })\n✓ path '/' + method GET casou", ctrl: "—", log: "match app.get('/')" },
+    { active: "ctrl", title: "Resposta", http: "HTTP/1.1 200 OK\nContent-Type: text/html\n\n<h1>Olá</h1>", express: "Handler executa res.send(...)\nFim — não passa por Router modular", ctrl: "function inline(req, res) {\n  res.send('<h1>Olá</h1>');\n}", log: "200 HTML", cls: "ok" },
+  ],
+  query: [
+    { active: "http", title: "Query string", http: "GET /produtos?ordenar=preco HTTP/1.1", express: "req.query = { ordenar: 'preco' }\n(parsers já rodaram no server.js)", ctrl: "—", log: "GET com query" },
+    { active: "express", title: "Router casou", http: "—", express: "app.use('/produtos', produtosRouter)\nprodutosRouter.get('/') → match", ctrl: "—", log: "prefix + GET /" },
+    { active: "ctrl", title: "Ordenação", http: "HTTP/1.1 200 OK\n[ {...}, {...} ] ordenado por preço", express: "—", ctrl: "listar(req, res) {\n  let lista = [...produtos];\n  if (req.query.ordenar === 'preco')\n    lista.sort(...);\n  res.json(lista);\n}", log: "JSON ordenado", cls: "ok" },
+  ],
+  params: [
+    { active: "http", title: "Path param", http: "GET /produtos/2 HTTP/1.1", express: "Montagem: /produtos + /:id\nreq.params.id === '2' (string!)", ctrl: "—", log: "GET /produtos/2" },
+    { active: "express", title: "router.param", http: "—", express: "router.param('id', loadProduto)\nMiddleware roda ANTES do handler", ctrl: "loadProduto busca id=2\nreq.produto = { id:2, ... }", log: "loadProduto" },
+    { active: "ctrl", title: "Detalhe", http: "HTTP/1.1 200 OK\n{ \"id\": 2, \"nome\": \"Mouse gamer\", ... }", express: "router.route('/:id').get(detalhar)", ctrl: "detalhar(req, res) {\n  res.json(req.produto);\n}", log: "200 detalhe", cls: "ok" },
+  ],
+  router: [
+    { active: "http", title: "Request", http: "GET /produtos HTTP/1.1", express: "server.js NÃO define GET /produtos direto", ctrl: "—", log: "GET /produtos" },
+    { active: "express", title: "Montagem", http: "—", express: "const router = express.Router();\n// routes/produtos.js\n\napp.use('/produtos', produtosRouter);\n\nPath interno '/' → URL '/produtos'", ctrl: "Router = mini-app plugável\nMesmos .get .post .use", log: "app.use prefixo", cls: "ok" },
+    { active: "ctrl", title: "Handler", http: "200 JSON lista", express: "—", ctrl: "routes/produtos.js:\nrouter.get('/', produtosController.listar)", log: "controller.listar", cls: "ok" },
+  ],
+  controller: [
+    { active: "express", title: "Rota enxuta", http: "GET /produtos", express: "routes/produtos.js só MAPEIA:\nqual verbo+path → qual função", ctrl: "controllers/produtosController.js\nimplementa listar, detalhar, criar…", log: "separação rota/controller" },
+    { active: "ctrl", title: "Testável", http: "—", express: "—", ctrl: "import { listar } from '...'\n// teste unitário sem subir servidor\nlistar(reqFake, resFake)", log: "controller isolado", cls: "ok" },
+    { active: "http", title: "Resposta", http: "200 JSON", express: "—", ctrl: "Controller retorna res.json(...)\nAmanhã delega ao Model (MVC)", log: "200", cls: "ok" },
+  ],
+  cadeia: [
+    { active: "http", title: "POST body", http: "POST /produtos HTTP/1.1\nContent-Type: application/json\n\n{ \"nome\": \"Webcam\", \"preco\": 199 }", express: "express.json() → req.body", ctrl: "—", log: "POST /produtos" },
+    { active: "express", title: "Cadeia de handlers", http: "—", express: "router.post('/',\n  validarCriacao,    // MW 1\n  produtosController.criar  // handler final\n)\n\nCada um chama next() ou responde", ctrl: "validarCriacao:\nif (!nome) return res.status(400)...;\nnext();", log: "validarCriacao → next()" },
+    { active: "ctrl", title: "Criar", http: "HTTP/1.1 201 Created\n{ \"id\": 4, \"nome\": \"Webcam\", ... }", express: "—", ctrl: "criar(req, res) {\n  produtos.push({...});\n  res.status(201).json(novo);\n}", log: "201 Created", cls: "ok" },
+  ],
+  ordem: [
+    { active: "http", title: "Rota fixa", http: "GET /produtos/novo HTTP/1.1", express: "Express testa rotas NA ORDEM declarada", ctrl: "—", log: "GET /produtos/novo" },
+    { active: "express", title: "Ordem correta", http: "—", express: "router.get('/novo', formNovo)   ← ANTES\nrouter.route('/:id').get(...)    ← DEPOIS\n\n✓ '/novo' não vira id='novo'", ctrl: "—", log: "fixo antes de :id", cls: "ok" },
+    { active: "ctrl", title: "Form", http: "200 { mensagem: 'Formulário...', campos: [...] }", express: "—", ctrl: "formNovo(req, res) {\n  res.json({ campos: ['nome','preco'] });\n}", log: "200 formNovo", cls: "ok" },
+    { active: "express", title: "Se invertesse…", http: "GET /produtos/novo", express: "Se /:id viesse PRIMEIRO:\nreq.params.id = 'novo' → 404 ou bug", ctrl: "loadProduto('novo') → 400 id inválido", log: "armadilha ordem", cls: "err" },
+  ],
+  "route-chain": [
+    { active: "http", title: "PUT", http: "PUT /produtos/1 HTTP/1.1\n{ \"preco\": 320 }", express: "Mesmo path, verbos diferentes", ctrl: "—", log: "PUT /produtos/1" },
+    { active: "express", title: "router.route", http: "—", express: "router.route('/:id')\n  .get(detalhar)\n  .put(atualizar)\n  .delete(remover)\n\n= app.route no mini-app", ctrl: "—", log: "route chain", cls: "ok" },
+    { active: "ctrl", title: "Atualizar", http: "200 JSON produto atualizado", express: "loadProduto já preencheu req.produto", ctrl: "atualizar(req, res) {\n  req.produto.preco = req.body.preco;\n  res.json(req.produto);\n}", log: "200 PUT", cls: "ok" },
+  ],
+  param: [
+    { active: "express", title: "router.param", http: "GET /produtos/99", express: "router.param('id', loadProduto)\n\nExpress chama:\nloadProduto(req, res, next, id)\npara TODA rota com :id", ctrl: "—", log: "param middleware" },
+    { active: "ctrl", title: "Loader", http: "—", express: "—", ctrl: "loadProduto(req, res, next, id) {\n  const p = buscarPorId(Number(id));\n  if (!p) return res.status(404)...;\n  req.produto = p;\n  next();\n}", log: "req.produto" },
+    { active: "ctrl", title: "Handlers finos", http: "404 se id=99", express: "—", ctrl: "detalhar/atualizar/remover\nusam req.produto\n— sem repetir find()", log: "DRY nos handlers", cls: "ok" },
+  ],
+  nested: [
+    { active: "http", title: "URL aninhada", http: "GET /usuarios/1/posts HTTP/1.1", express: "Dois níveis de recurso:\nusuário → posts dele", ctrl: "—", log: "GET nested" },
+    { active: "express", title: "mergeParams", http: "—", express: "app.use('/usuarios/:userId/posts', postsRouter)\n\npostsRouter = express.Router({ mergeParams: true })\n\nreq.params.userId disponível no filho", ctrl: "—", log: "mergeParams: true", cls: "ok" },
+    { active: "ctrl", title: "Lista filtrada", http: "200 { userId: 1, posts: [...] }", express: "postsRouter.get('/', listarPorUsuario)", ctrl: "listarPorUsuario(req, res) {\n  const id = Number(req.params.userId);\n  res.json({ userId: id, posts: [...] });\n}", log: "200 posts", cls: "ok" },
+  ],
+};
+
+function getSteps() { return SCENARIOS[scenarioEl.value] || []; }
+
+async function play() {
+  if (playing) return;
+  const steps = getSteps();
+  if (!steps.length) return;
+  playing = true; updateControls(steps);
+  logEl.innerHTML = ""; traceSteps = []; renderTrace(); renderAllSteps(steps); manualIndex = -1;
+  for (let i = 0; i < steps.length; i++) {
+    applyStep(i, steps, { logLine: true });
+    await new Promise(r => setTimeout(r, 850));
+    traceSteps[i].state = "done"; setAllRowStates(i, true); renderTrace(); updateControls(steps);
+  }
+  manualIndex = steps.length - 1;
+  document.getElementById("status").textContent = "concluído";
+  playing = false; updateControls(steps);
+}
+
+function reset() {
+  playing = false; manualIndex = -1; logEl.innerHTML = ""; traceSteps = [];
+  const steps = getSteps();
+  renderIdleColumns(steps); renderTrace();
+  ["colHttp", "colExpress", "colCtrl"].forEach(id => document.getElementById(id).classList.remove("active"));
+  document.getElementById("status").textContent = "pronto";
+  updateControls(steps);
+}
+
+scenarioEl.addEventListener("change", reset);
+document.getElementById("btnPlay").addEventListener("click", play);
+document.getElementById("btnReset").addEventListener("click", reset);
+btnPrev.addEventListener("click", manualPrev);
+btnNext.addEventListener("click", manualNext);
+document.addEventListener("keydown", e => {
+  if (playing) return;
+  if (e.key === "ArrowRight") { e.preventDefault(); manualNext(); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); manualPrev(); }
+});
+reset();
+</script>
+</body>
+</html>

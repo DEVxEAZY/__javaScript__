@@ -34,50 +34,64 @@ const produtos = [
 ];
 
 
-// GET /produtos
-function listar(req, res) {
-    res.json(produtos);
+/** Usado por loadProduto (router.param) — expõe o array fake */
+function buscarPorId(id) {
+    return produtos.find(p => p.id === id) || null;
 }
 
 
-// GET /produtos/:id
-function detalhar(req, res) {
-    // req.params.id chega como STRING. Compare com Number(...) ou
-    // converta antes — comparar "1" === 1 da false.
-    const id = Number(req.params.id);
-    const produto = produtos.find(p => p.id === id);
-
-    if (!produto) {
-        // 404 = "achei o servidor mas nao achei esse recurso".
-        // res.status(...).json(...) e um padrao MUITO comum:
-        // ajusta o status code antes de mandar o corpo.
-        return res.status(404).json({ erro: "Produto nao encontrado" });
+// GET /produtos
+function listar(req, res) {
+    const { ordenar } = req.query;
+    let lista = [...produtos];
+    if (ordenar === "preco") {
+        lista.sort((a, b) => a.preco - b.preco);
     }
+    res.json(lista);
+}
 
-    res.json(produto);
+
+// GET /produtos/novo — rota FIXA antes de /:id (ordem importa!)
+function formNovo(req, res) {
+    res.json({
+        mensagem: "Formulário de novo produto (rota fixa /novo)",
+        campos: ["nome", "preco"],
+    });
+}
+
+
+// GET /produtos/:id — usa req.produto se loadProduto rodou
+function detalhar(req, res) {
+    res.json(req.produto);
+}
+
+
+// PUT /produtos/:id
+function atualizar(req, res) {
+    const { nome, preco } = req.body;
+    if (nome) req.produto.nome = nome;
+    if (preco != null) req.produto.preco = Number(preco);
+    res.json(req.produto);
+}
+
+
+// DELETE /produtos/:id
+function remover(req, res) {
+    const idx = produtos.findIndex(p => p.id === req.produto.id);
+    if (idx >= 0) produtos.splice(idx, 1);
+    res.status(204).send();
 }
 
 
 // POST /produtos
 function criar(req, res) {
     const { nome, preco } = req.body;
-
-    // Validacao basica — em prod use uma lib (zod, joi, yup).
-    if (!nome || preco == null) {
-        return res.status(400).json({
-            erro: "Campos obrigatorios: nome, preco",
-        });
-    }
-
     const novo = {
-        id: produtos.length + 1, // id "fake" — banco real cuida disso
+        id: produtos.length + 1,
         nome,
         preco: Number(preco),
     };
     produtos.push(novo);
-
-    // 201 = "criado". Convencao REST: respondendo a um POST que
-    // criou um recurso, devolva 201 e o objeto criado (com id).
     res.status(201).json(novo);
 }
 
@@ -88,7 +102,11 @@ function criar(req, res) {
 // Alternativa equivalente: exportar cada funcao separada
 // (`exports.listar = ...`). Sao estilos — escolha um e mantenha.
 module.exports = {
+    buscarPorId,
     listar,
+    formNovo,
     detalhar,
     criar,
+    atualizar,
+    remover,
 };

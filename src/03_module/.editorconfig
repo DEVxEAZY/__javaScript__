@@ -1,0 +1,13 @@
+# Padrão do módulo 03 — alinhado à aula EditorConfig (indent 2, LF, UTF-8).
+# Editores com extensão EditorConfig aplicam isto em qualquer subpasta.
+# Detalhes: src/03_module/editorconfig/EDITORCONFIG.md
+
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+charset = utf-8
+trim_trailing_whitespace = true
+end_of_line = lf
+insert_final_newline = true

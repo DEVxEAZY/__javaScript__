@@ -258,7 +258,7 @@ Use [02_checklist_seguranca_web.md](02_checklist_seguranca_web.md) como lista ma
 2. [02_checklist_seguranca_web.md](02_checklist_seguranca_web.md) — marcar enquanto pratica  
 3. `03` → `04` → rodar ou ler `express/08`  
 4. `05` (JWT) → `06` + [postgres_fluxo.html](postgres_fluxo.html)  
-5. [lab_auth_referencia/](lab_auth_referencia/) + [AULA.md do lab](lab_auth_referencia/AULA.md)  
+5. [lab_auth_referencia/](lab_auth_referencia/) + [LAB_AUTH_REFERENCIA.md do lab](lab_auth_referencia/LAB_AUTH_REFERENCIA.md)  
 6. `07` + [supabase_arquitetura.html](supabase_arquitetura.html) → `08`  
 7. [__test__/](__test__/) — fixação  
 
@@ -276,4 +276,4 @@ Para Supabase Auth/RLS, o capítulo [07](07_supabase_auth_postgres_rls.md) perma
 
 ---
 
-**Anterior:** [08_comparativo_roll_your_own_vs_baas.md](08_comparativo_roll_your_own_vs_baas.md) · **Hub visual:** [00_mapa_auth.html](00_mapa_auth.html) · **Lab:** [lab_auth_referencia/AULA.md](lab_auth_referencia/AULA.md)
+**Anterior:** [08_comparativo_roll_your_own_vs_baas.md](08_comparativo_roll_your_own_vs_baas.md) · **Hub visual:** [00_mapa_auth.html](00_mapa_auth.html) · **Lab:** [lab_auth_referencia/LAB_AUTH_REFERENCIA.md](lab_auth_referencia/LAB_AUTH_REFERENCIA.md)

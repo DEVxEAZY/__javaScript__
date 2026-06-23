@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Middleware + SQLite — fluxo visual</title>
+<style>
+  :root {
+    --bg: #fafafa; --surface: #fff; --ink: #0a0a0a; --ink-2: #525252; --ink-3: #a3a3a3;
+    --border: #e7e7e7; --req: #1d4ed8; --res: #6d28d9; --ok: #047857; --err: #b91c1c;
+    --mono: ui-monospace, Consolas, monospace;
+    --sans: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: var(--sans); color: var(--ink); }
+  .wrap { max-width: 1480px; margin: 0 auto; padding: 28px 24px 48px; }
+  h1 { margin: 0; font-size: 22px; font-weight: 600; }
+  h1 .small { display: block; font-size: 0.72em; color: var(--ink-3); font-weight: 400; margin-top: 4px; }
+  .console {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; margin: 16px 0;
+  }
+  .btn { border: 1px solid var(--border); background: var(--surface); padding: 6px 12px; border-radius: 7px; cursor: pointer; font-size: 12px; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  select { font-family: var(--mono); font-size: 12px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+  @media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } }
+  .col {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    min-height: 200px; display: flex; flex-direction: column;
+  }
+  .col .head {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.06em;
+  }
+  .col .body { padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .col.active { border-color: var(--req); box-shadow: 0 2px 8px rgba(29,78,216,0.08); }
+  .col.http.active { border-color: var(--req); }
+  .col.express.active { border-color: var(--res); }
+  .col.sql.active { border-color: var(--ok); }
+  .step {
+    font-family: var(--mono); font-size: 11px; line-height: 1.55; white-space: pre-wrap;
+    padding: 8px 10px 8px 36px; border-radius: 8px; border: 1px solid var(--border);
+    border-left-width: 3px; position: relative; background: #fafafa;
+    opacity: 0.88; color: var(--ink-2); transition: border-color 0.2s, background 0.2s, opacity 0.2s;
+  }
+  .step .num {
+    position: absolute; left: 10px; top: 8px; width: 18px; height: 18px;
+    border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center;
+    background: var(--border); color: var(--ink-2); font-weight: 600;
+  }
+  .step.pending { opacity: 0.78; }
+  .step.future { display: none; }
+  .step.current {
+    opacity: 1; color: var(--ink); border-left-color: var(--req);
+    background: #eff6ff; box-shadow: 0 1px 4px rgba(29,78,216,0.1);
+  }
+  .step.current .num { background: var(--req); color: #fff; }
+  .step.done {
+    opacity: 0.92; color: var(--ink); border-left-color: var(--ok); background: #f0fdf4;
+  }
+  .step.done .num { background: var(--ok); color: #fff; font-size: 0; }
+  .step.done .num::after { content: "✓"; font-size: 11px; line-height: 18px; }
+  .step.empty { opacity: 0.5; font-style: italic; }
+  .col-idle {
+    font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--ink-2);
+    padding: 16px 12px; margin: 0; border: 1px dashed var(--border); border-radius: 8px;
+    background: #fafafa;
+  }
+  .col-idle strong { color: var(--ink); font-weight: 600; }
+  .trace-panel {
+    margin-top: 12px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .trace-panel .label {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .trace-timeline { display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
+  .trace-timeline.empty .trace-placeholder {
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-style: italic; margin: 0;
+  }
+  .trace-card {
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+    background: #fafafa; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  .trace-card.current { border-color: var(--req); background: #eff6ff; box-shadow: 0 1px 6px rgba(29,78,216,0.12); }
+  .trace-card.done { border-left: 3px solid var(--ok); background: #f0fdf4; }
+  .trace-card-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .trace-badge {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--ink-2); flex-shrink: 0;
+  }
+  .trace-card.current .trace-badge { background: var(--req); color: #fff; }
+  .trace-card.done .trace-badge { background: var(--ok); color: #fff; font-size: 0; }
+  .trace-card.done .trace-badge::after { content: "✓"; font-size: 11px; }
+  .trace-card-title { font-weight: 600; color: var(--ink); flex: 1; }
+  .trace-ts { font-size: 10px; color: var(--ink-3); }
+  .trace-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  @media (max-width: 900px) { .trace-cols { grid-template-columns: 1fr; } }
+  .trace-col { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; background: var(--surface); }
+  .trace-col-label {
+    font-family: var(--mono); font-size: 9px; color: var(--ink-3); letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .trace-col-body {
+    font-family: var(--mono); font-size: 10px; line-height: 1.5; white-space: pre-wrap;
+    color: var(--ink); word-break: break-word;
+  }
+  .trace-col-body.muted { color: var(--ink-3); font-style: italic; }
+  .log-panel {
+    margin-top: 10px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; max-height: 180px; overflow-y: auto; padding: 10px 14px;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .log-panel .line { padding: 2px 0; color: var(--ink-2); }
+  .log-panel .line.err { color: var(--err); }
+  .log-panel .line.ok { color: var(--ok); }
+  .back { font-family: var(--mono); font-size: 11px; margin-bottom: 12px; }
+  .back a { color: var(--req); }
+  .pipeline {
+    margin: 12px 0; padding: 10px 14px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px;
+    font-family: var(--mono); font-size: 10.5px; line-height: 1.6; color: var(--ink-2);
+    overflow-x: auto; white-space: pre;
+  }
+  footer { margin-top: 20px; text-align: center; font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="back">
+    <a href="server_sqlite.js">server_sqlite.js</a> ·
+    <a href="../00_fluxo_visual.html">00_fluxo_visual.html</a> ·
+    <a href="server.js">07_middlewares (sem banco)</a>
+  </p>
+  <h1>Middleware + rotas + SQLite<span class="small">simulação educativa · better-sqlite3 · rastro persistente · 07_middlewares</span></h1>
+
+  <pre class="pipeline">request → json/urlencoded → logger → req.db → [ /admin: autenticar ] → rota (+ validarTarefa?) → SQLite → res
+                                                                                              ↓ (sem match)
+                                                                                         404 catch-all
+                                                                                              ↓ (throw)
+                                                                                    error handler (4 args)</pre>
+
+  <div class="console">
+    <button class="btn primary" id="btnPlay">Reproduzir passos</button>
+    <button class="btn" id="btnPrev" type="button" title="Passo anterior">← Anterior</button>
+    <button class="btn" id="btnNext" type="button" title="Próximo passo">Próximo →</button>
+    <button class="btn" id="btnReset">reset</button>
+    <select id="scenario">
+      <option value="listar">GET /tarefas — listar (pipeline completo)</option>
+      <option value="criar">POST /tarefas — validação + INSERT</option>
+      <option value="admin-401">GET /admin — middleware barra (sem SQLite)</option>
+      <option value="404">GET /xyz — 404 catch-all</option>
+      <option value="erro">GET /erro — error handler</option>
+    </select>
+    <span id="stepIndicator" style="font-family:var(--mono);font-size:11px;color:var(--ink-2)">passo — / —</span>
+    <span id="status" style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-2)">pronto</span>
+  </div>
+
+  <div class="cols">
+    <div class="col http" id="colHttp">
+      <div class="head">HTTP · Cliente</div>
+      <div class="body" id="stepsHttp"></div>
+    </div>
+    <div class="col express" id="colExpress">
+      <div class="head">Express · Middleware / Rota</div>
+      <div class="body" id="stepsExpress"></div>
+    </div>
+    <div class="col sql" id="colSql">
+      <div class="head">SQLite · tarefas.db (simulado)</div>
+      <div class="body" id="stepsSql"></div>
+    </div>
+  </div>
+
+  <div class="trace-panel">
+    <div class="label">RASTRO CUMULATIVO — cada passo repete HTTP, Express e SQLite (não some após animar)</div>
+    <div class="trace-timeline empty" id="traceTimeline">
+      <p class="trace-placeholder">Aguardando reprodução…</p>
+    </div>
+  </div>
+
+  <div class="log-panel" id="log"></div>
+  <footer>07_middlewares/server_sqlite.js · middleware_sqlite_fluxo.html</footer>
+</div>
+
+<script>
+const stepsHttp = document.getElementById("stepsHttp");
+const stepsExpress = document.getElementById("stepsExpress");
+const stepsSql = document.getElementById("stepsSql");
+const logEl = document.getElementById("log");
+const traceTimeline = document.getElementById("traceTimeline");
+const scenarioEl = document.getElementById("scenario");
+const btnPrev = document.getElementById("btnPrev");
+const btnNext = document.getElementById("btnNext");
+const stepIndicator = document.getElementById("stepIndicator");
+
+let playing = false;
+let manualIndex = -1;
+let traceSteps = [];
+
+function log(msg, cls) {
+  const d = document.createElement("div");
+  d.className = "line" + (cls ? " " + cls : "");
+  d.textContent = msg;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setCols(active) {
+  ["colHttp", "colExpress", "colSql"].forEach(id => document.getElementById(id).classList.remove("active"));
+  if (active === "http") document.getElementById("colHttp").classList.add("active");
+  if (active === "express") document.getElementById("colExpress").classList.add("active");
+  if (active === "sql") document.getElementById("colSql").classList.add("active");
+}
+
+function isEmptyText(t) {
+  const s = (t || "").trim();
+  return !s || s === "—";
+}
+
+function makeStepEl(num, text, empty) {
+  const el = document.createElement("div");
+  el.className = "step pending" + (empty ? " empty" : "");
+  el.dataset.i = String(num - 1);
+  const numEl = document.createElement("span");
+  numEl.className = "num";
+  numEl.textContent = String(num);
+  el.appendChild(numEl);
+  el.appendChild(document.createTextNode(empty ? "(sem atividade nesta camada neste instante)" : text));
+  return el;
+}
+
+function renderAllSteps(steps) {
+  stepsHttp.innerHTML = "";
+  stepsExpress.innerHTML = "";
+  stepsSql.innerHTML = "";
+  steps.forEach((s, i) => {
+    const n = i + 1;
+    stepsHttp.appendChild(makeStepEl(n, s.http, isEmptyText(s.http)));
+    stepsExpress.appendChild(makeStepEl(n, s.express, isEmptyText(s.express)));
+    stepsSql.appendChild(makeStepEl(n, s.sql, isEmptyText(s.sql)));
+  });
+}
+
+function renderIdleColumns(steps) {
+  const total = steps.length;
+  const names = {
+    http: "HTTP · Cliente",
+    express: "Express · Middleware / Rota",
+    sql: "SQLite · tarefas.db (simulado)",
+  };
+  const bodies = { http: stepsHttp, express: stepsExpress, sql: stepsSql };
+  Object.keys(bodies).forEach((key) => {
+    const el = bodies[key];
+    el.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "col-idle";
+    p.innerHTML =
+      "<strong>" + names[key] + "</strong><br>" +
+      "Cenário com <strong>" + total + "</strong> passo(s).<br>" +
+      "Use <strong>Próximo →</strong> ou <strong>Reproduzir passos</strong>.";
+    el.appendChild(p);
+  });
+}
+
+function setAllRowStates(currentIndex, allDone) {
+  [stepsHttp, stepsExpress, stepsSql].forEach(col => {
+    col.querySelectorAll(".step").forEach(el => {
+      el.classList.remove("pending", "current", "done", "future");
+      const i = Number(el.dataset.i);
+      if (i > currentIndex) el.classList.add("future");
+      else if (allDone || i < currentIndex) el.classList.add("done");
+      else el.classList.add("current");
+    });
+  });
+}
+
+function markAllDone(count) {
+  if (count <= 0) return;
+  setAllRowStates(count - 1, true);
+}
+
+function traceColBody(text) {
+  const body = document.createElement("div");
+  body.className = "trace-col-body" + (isEmptyText(text) ? " muted" : "");
+  body.textContent = isEmptyText(text)
+    ? "(sem atividade nesta camada neste instante)"
+    : text;
+  return body;
+}
+
+function traceCol(label, text) {
+  const col = document.createElement("div");
+  col.className = "trace-col";
+  const lab = document.createElement("div");
+  lab.className = "trace-col-label";
+  lab.textContent = label;
+  col.appendChild(lab);
+  col.appendChild(traceColBody(text));
+  return col;
+}
+
+function renderTrace() {
+  traceTimeline.innerHTML = "";
+  if (!traceSteps.length) {
+    traceTimeline.classList.add("empty");
+    const p = document.createElement("p");
+    p.className = "trace-placeholder";
+    p.textContent = "Aguardando reprodução…";
+    traceTimeline.appendChild(p);
+    return;
+  }
+  traceTimeline.classList.remove("empty");
+  traceSteps.forEach((step, i) => {
+    const card = document.createElement("article");
+    card.className = "trace-card";
+    if (step.state === "done") card.classList.add("done");
+    else if (step.state === "current") card.classList.add("current");
+    const head = document.createElement("div");
+    head.className = "trace-card-header";
+    const badge = document.createElement("span");
+    badge.className = "trace-badge";
+    badge.textContent = String(i + 1);
+    const title = document.createElement("span");
+    title.className = "trace-card-title";
+    title.textContent = "Passo " + (i + 1) + " · " + step.title;
+    head.appendChild(badge);
+    head.appendChild(title);
+    if (step.ts) {
+      const ts = document.createElement("span");
+      ts.className = "trace-ts";
+      ts.textContent = step.ts;
+      head.appendChild(ts);
+    }
+    card.appendChild(head);
+    const cols = document.createElement("div");
+    cols.className = "trace-cols";
+    cols.appendChild(traceCol("HTTP", step.http));
+    cols.appendChild(traceCol("Express", step.express));
+    cols.appendChild(traceCol("SQLite", step.sql));
+    card.appendChild(cols);
+    traceTimeline.appendChild(card);
+  });
+  traceTimeline.scrollTop = traceTimeline.scrollHeight;
+}
+
+function stepToTraceEntry(stepData, state) {
+  return {
+    http: stepData.http || "",
+    express: stepData.express || "",
+    sql: stepData.sql || "",
+    title: stepData.title || stepData.log || "passo",
+    ts: state === "done"
+      ? new Date().toLocaleTimeString("pt-BR", { hour12: false })
+      : undefined,
+    state,
+  };
+}
+
+function rebuildTraceThroughIndex(steps, index) {
+  traceSteps = steps.slice(0, index + 1).map((s, i) =>
+    stepToTraceEntry(s, i < index ? "done" : "current")
+  );
+  renderTrace();
+}
+
+function updateControls(steps) {
+  const total = steps.length;
+  const hasSteps = total > 0;
+  btnPrev.disabled = playing || !hasSteps || manualIndex <= 0;
+  btnNext.disabled = playing || !hasSteps || manualIndex >= total - 1;
+  document.getElementById("btnPlay").disabled = playing;
+  stepIndicator.textContent = !hasSteps || manualIndex < 0
+    ? "passo — / " + total
+    : "passo " + (manualIndex + 1) + " / " + total;
+}
+
+function applyStep(index, steps, options) {
+  const opts = options || {};
+  if (!steps.length) return;
+  const i = Math.max(0, Math.min(index, steps.length - 1));
+  manualIndex = i;
+  const s = steps[i];
+  setAllRowStates(i, false);
+  setCols(s.active);
+  rebuildTraceThroughIndex(steps, i);
+  if (opts.logLine) log("— Passo " + (i + 1) + ": " + s.log, s.cls || "");
+  updateControls(steps);
+  document.getElementById("status").textContent = opts.statusText || "passo " + (i + 1);
+}
+
+function manualNext() {
+  if (playing) return;
+  const steps = getSteps();
+  if (!steps.length) return;
+  if (manualIndex < 0) {
+    logEl.innerHTML = "";
+    traceSteps = [];
+    renderTrace();
+    renderAllSteps(steps);
+    applyStep(0, steps, { logLine: true, statusText: "manual" });
+    return;
+  }
+  if (manualIndex < steps.length - 1) {
+    applyStep(manualIndex + 1, steps, { logLine: true, statusText: "manual" });
+  }
+}
+
+function manualPrev() {
+  if (playing || manualIndex <= 0) return;
+  applyStep(manualIndex - 1, getSteps(), { logLine: true, statusText: "manual" });
+}
+
+const SCENARIOS = {
+  listar: [
+    {
+      active: "http",
+      title: "Cliente pede lista",
+      http: "GET /tarefas HTTP/1.1\nHost: localhost:3001\nAccept: application/json",
+      express: "Entrada no app.listen(3001)\nPipeline começa na ordem dos app.use()",
+      sql: "(nenhuma query ainda)",
+      log: "GET /tarefas",
+    },
+    {
+      active: "express",
+      title: "Body parsers + logger",
+      http: "(request dentro do Node)",
+      express: "express.json() → body vazio (GET), next()\nexpress.urlencoded() → next()\nlogger: console.log('→ GET /tarefas')",
+      sql: "(aguardando)",
+      log: "parsers + logger",
+    },
+    {
+      active: "express",
+      title: "Middleware injeta req.db",
+      http: "(mesma request)",
+      express: "app.use((req, res, next) => {\n  req.db = db;  // better-sqlite3\n  next();\n})",
+      sql: "Conexão já aberta em tarefas.db\n(handler ainda não consultou)",
+      log: "req.db disponível",
+    },
+    {
+      active: "express",
+      title: "Rota casou",
+      http: "(processando…)",
+      express: "app.get('/tarefas', handler)\n// /admin/autenticar NÃO roda\n// (path não começa com /admin)",
+      sql: "(handler vai consultar)",
+      log: "rota GET /tarefas",
+    },
+    {
+      active: "sql",
+      title: "SELECT parametrizado",
+      http: "(aguardando resposta)",
+      express: "const rows = req.db.prepare(\n  'SELECT id, titulo, feita FROM tarefas ORDER BY id'\n).all()",
+      sql: "SELECT id, titulo, feita\nFROM tarefas\nORDER BY id;\n\n→ 2 rows (seed inicial)",
+      log: "SELECT * tarefas",
+    },
+    {
+      active: "http",
+      title: "200 JSON",
+      http: "HTTP/1.1 200 OK\nContent-Type: application/json\n\n[\n  { \"id\": 1, \"titulo\": \"Estudar middlewares\", \"feita\": 0 },\n  { \"id\": 2, \"titulo\": \"Rodar fluxo HTML\", \"feita\": 0 }\n]",
+      express: "res.json(rows)\nlogger: '← GET /tarefas 200 (Nms)'",
+      sql: "(leitura concluída)",
+      log: "200 JSON",
+      cls: "ok",
+    },
+  ],
+  criar: [
+    {
+      active: "http",
+      title: "POST com body JSON",
+      http: "POST /tarefas HTTP/1.1\nContent-Type: application/json\n\n{ \"titulo\": \"Nova tarefa\" }",
+      express: "Pipeline: parsers → logger → req.db",
+      sql: "(nenhuma escrita ainda)",
+      log: "POST /tarefas",
+    },
+    {
+      active: "express",
+      title: "express.json preenche req.body",
+      http: "(body parseado)",
+      express: "express.json()\nreq.body = { titulo: 'Nova tarefa' }\nnext()",
+      sql: "—",
+      log: "req.body preenchido",
+    },
+    {
+      active: "express",
+      title: "Middleware validarTarefa",
+      http: "(ainda sem resposta)",
+      express: "app.post('/tarefas', validarTarefa, handler)\n\ntitulo.trim().length >= 2 → next()\nreq.tituloValidado = 'Nova tarefa'",
+      sql: "(aguardando INSERT)",
+      log: "validarTarefa ok",
+      cls: "ok",
+    },
+    {
+      active: "sql",
+      title: "INSERT + SELECT por id",
+      http: "(processando…)",
+      express: "const info = db.prepare(\n  'INSERT INTO tarefas (titulo) VALUES (?)'\n).run(req.tituloValidado)\n\nSELECT … WHERE id = ?",
+      sql: "INSERT INTO tarefas (titulo)\nVALUES ('Nova tarefa');\n-- lastInsertRowid = 3\n\nSELECT id, titulo, feita\nWHERE id = 3;",
+      log: "INSERT parametrizado (?)",
+    },
+    {
+      active: "http",
+      title: "201 Created",
+      http: "HTTP/1.1 201 Created\nContent-Type: application/json\n\n{ \"id\": 3, \"titulo\": \"Nova tarefa\", \"feita\": 0 }",
+      express: "res.status(201).json(criada)",
+      sql: "1 row inserted",
+      log: "201 Created",
+      cls: "ok",
+    },
+  ],
+  "admin-401": [
+    {
+      active: "http",
+      title: "GET /admin sem token",
+      http: "GET /admin HTTP/1.1\nHost: localhost:3001\n(sem ?token=42)",
+      express: "parsers → logger → req.db",
+      sql: "(SQLite nunca é consultado neste cenário)",
+      log: "GET /admin",
+    },
+    {
+      active: "express",
+      title: "Middleware de rota barra",
+      http: "(sem resposta ainda)",
+      express: "app.use('/admin', autenticar)\n\nreq.query.token !== '42'\n→ res.status(401).send(...)\n// NÃO chama next()",
+      sql: "—",
+      log: "autenticar → 401",
+      cls: "err",
+    },
+    {
+      active: "http",
+      title: "401 Unauthorized",
+      http: "HTTP/1.1 401 Unauthorized\nContent-Type: text/html\n\n<h1>401 — Não autorizado</h1>",
+      express: "Pipeline PARA aqui\nRotas /admin e SQLite não rodam",
+      sql: "—",
+      log: "401 ao browser",
+      cls: "err",
+    },
+  ],
+  "404": [
+    {
+      active: "http",
+      title: "URL desconhecida",
+      http: "GET /rota-inexistente HTTP/1.1",
+      express: "parsers → logger → req.db",
+      sql: "—",
+      log: "GET /rota-inexistente",
+    },
+    {
+      active: "express",
+      title: "Nenhuma rota casou",
+      http: "(processando…)",
+      express: "Express percorreu app.get/post…\nNenhum handler respondeu\nCai no middleware 404 (app.use no final)",
+      sql: "—",
+      log: "sem match de rota",
+    },
+    {
+      active: "http",
+      title: "404 Not Found",
+      http: "HTTP/1.1 404 Not Found\n\n<h1>404 — Não encontrado</h1>",
+      express: "res.status(404).send(...)",
+      sql: "—",
+      log: "404 catch-all",
+      cls: "err",
+    },
+  ],
+  erro: [
+    {
+      active: "http",
+      title: "GET /erro",
+      http: "GET /erro HTTP/1.1",
+      express: "parsers → logger → req.db",
+      sql: "—",
+      log: "GET /erro",
+    },
+    {
+      active: "express",
+      title: "Handler lança exceção",
+      http: "(sem resposta normal)",
+      express: "app.get('/erro', () => {\n  throw new Error('Erro proposital…');\n})",
+      sql: "—",
+      log: "throw new Error",
+      cls: "err",
+    },
+    {
+      active: "express",
+      title: "Error handler (4 args)",
+      http: "(resposta de erro)",
+      express: "app.use((err, req, res, next) => {\n  console.error('ERRO:', err.message)\n  res.status(500).send(...)\n})",
+      sql: "—",
+      log: "middleware de erro",
+      cls: "err",
+    },
+    {
+      active: "http",
+      title: "500 Internal Server Error",
+      http: "HTTP/1.1 500 Internal Server Error\n\n<h1>500 — Erro interno</h1>",
+      express: "Stack não vazada ao cliente",
+      sql: "—",
+      log: "500 ao browser",
+      cls: "err",
+    },
+  ],
+};
+
+function getSteps() {
+  return SCENARIOS[scenarioEl.value] || [];
+}
+
+async function play() {
+  if (playing) return;
+  const steps = getSteps();
+  if (!steps.length) return;
+  playing = true;
+  updateControls(steps);
+  document.getElementById("status").textContent = "executando…";
+  logEl.innerHTML = "";
+  traceSteps = [];
+  renderTrace();
+  renderAllSteps(steps);
+  manualIndex = -1;
+  for (let i = 0; i < steps.length; i++) {
+    applyStep(i, steps, { logLine: true });
+    await new Promise((r) => setTimeout(r, 900));
+    traceSteps[i].state = "done";
+    traceSteps[i].ts = new Date().toLocaleTimeString("pt-BR", { hour12: false });
+    setAllRowStates(i, true);
+    renderTrace();
+    updateControls(steps);
+  }
+  manualIndex = steps.length - 1;
+  markAllDone(steps.length);
+  document.getElementById("status").textContent = "concluído";
+  playing = false;
+  updateControls(steps);
+}
+
+function reset() {
+  playing = false;
+  manualIndex = -1;
+  logEl.innerHTML = "";
+  traceSteps = [];
+  const steps = getSteps();
+  renderIdleColumns(steps);
+  renderTrace();
+  ["colHttp", "colExpress", "colSql"].forEach((id) =>
+    document.getElementById(id).classList.remove("active")
+  );
+  document.getElementById("status").textContent = "pronto";
+  updateControls(steps);
+}
+
+scenarioEl.addEventListener("change", reset);
+document.getElementById("btnPlay").addEventListener("click", play);
+document.getElementById("btnReset").addEventListener("click", reset);
+btnPrev.addEventListener("click", manualPrev);
+btnNext.addEventListener("click", manualNext);
+document.addEventListener("keydown", (e) => {
+  if (playing) return;
+  if (e.key === "ArrowRight") { e.preventDefault(); manualNext(); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); manualPrev(); }
+});
+reset();
+</script>
+</body>
+</html>
